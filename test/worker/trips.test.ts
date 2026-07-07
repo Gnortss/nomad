@@ -1,8 +1,9 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
-import { appAs } from "../helpers/session";
+import { appWith } from "../helpers/session";
+import { tripsRouter } from "../../src/worker/routes/trips";
 
-async function call(app: ReturnType<typeof appAs>, req: Request) {
+async function call(app: ReturnType<typeof appWith>, req: Request) {
   const ctx = createExecutionContext();
   const res = await app.fetch(req, env, ctx);
   await waitOnExecutionContext(ctx);
@@ -11,7 +12,7 @@ async function call(app: ReturnType<typeof appAs>, req: Request) {
 
 describe("trips", () => {
   it("creates a trip and lists only the owner's trips", async () => {
-    const alice = appAs("alice");
+    const alice = appWith("alice", tripsRouter);
     const created = await call(alice, new Request("http://x/api/trips", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -24,13 +25,13 @@ describe("trips", () => {
     const aliceList = await (await call(alice, new Request("http://x/api/trips"))).json<{ trips: unknown[] }>();
     expect(aliceList.trips).toHaveLength(1);
 
-    const bob = appAs("bob");
+    const bob = appWith("bob", tripsRouter);
     const bobList = await (await call(bob, new Request("http://x/api/trips"))).json<{ trips: unknown[] }>();
     expect(bobList.trips).toHaveLength(0);
   });
 
   it("rejects unauthenticated create", async () => {
-    const anon = appAs(null);
+    const anon = appWith(null, tripsRouter);
     const res = await call(anon, new Request("http://x/api/trips", {
       method: "POST",
       headers: { "content-type": "application/json" },
