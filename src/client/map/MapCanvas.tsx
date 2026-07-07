@@ -1,6 +1,7 @@
 import { Map, type MapMouseEvent } from "@vis.gl/react-google-maps";
 
-const ICELAND = { lat: 64.9631, lng: -19.0208 };
+// Also the instant fallback when geolocation is denied/unavailable (see MapCamera).
+const EUROPE = { lat: 50, lng: 10 };
 
 // Renders the single persistent map. Must be mounted inside an <APIProvider> (the
 // editor and share screens provide it) so sibling components can also use the SDK.
@@ -8,8 +9,8 @@ export function MapCanvas({ children, onMapClick }: { children?: React.ReactNode
   return (
     <Map
       mapId={import.meta.env.VITE_GOOGLE_MAPS_MAP_ID}
-      defaultCenter={ICELAND}
-      defaultZoom={6}
+      defaultCenter={EUROPE}
+      defaultZoom={4}
       gestureHandling="greedy"
       disableDefaultUI
       style={{ width: "100%", height: "100%" }}

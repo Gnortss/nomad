@@ -5,6 +5,7 @@ import { DndContext, DragOverlay, MeasuringStrategy, PointerSensor, pointerWithi
 import { useTrip, useMoveStop, useCreatePoint } from "../lib/api";
 import { EditorStoreProvider, useEditorStore } from "../state/editorStore";
 import { MapCanvas } from "../map/MapCanvas";
+import { MapCamera } from "../map/MapCamera";
 import { MapLayer } from "../map/MapLayer";
 import { DayRail } from "../editor/DayRail";
 import { Pool, StopCard } from "../editor/Pool";
@@ -86,6 +87,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
             </aside>
             <main style={{ flex: 1, position: "relative", minWidth: 0, cursor: droppingPin ? "crosshair" : "auto" }}>
               <MapCanvas onMapClick={onMapClick}>
+                <MapCamera detail={detail} />
                 <MapLayer detail={detail} />
               </MapCanvas>
               {detail.points.length === 0 && (
