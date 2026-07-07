@@ -1,0 +1,22 @@
+{
+  "name": "roadline",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./dist/client", "not_found_handling": "single-page-application" },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "roadline-dev", "database_id": "REPLACE_AFTER_D1_CREATE", "migrations_dir": "migrations" }
+  ],
+  "env": {
+    "preview": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "roadline-preview", "database_id": "REPLACE", "migrations_dir": "migrations" }
+      ]
+    },
+    "production": {
+      "d1_databases": [
+        { "binding": "DB", "database_name": "roadline-prod", "database_id": "REPLACE", "migrations_dir": "migrations" }
+      ]
+    }
+  }
+}
