@@ -1,4 +1,5 @@
 import { usePatchPoint } from "../lib/api";
+import { DayMenu } from "./DayMenu";
 import { useEditorStore } from "../state/editorStore";
 import { formatCost } from "../lib/format";
 import { groupColor } from "../lib/tripModel";
@@ -27,6 +28,10 @@ export function DetailPanel({ detail }: { detail: TripDetail }) {
         <button onClick={() => selectPoint(null)} aria-label="Close details" style={{ width: 30, height: 30, flex: "none", border: "none", background: "rgba(87,103,107,.12)", borderRadius: 7, fontSize: 16, cursor: "pointer" }}>✕</button>
       </div>
       <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <div className="ovp" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", color: "var(--slate)", marginBottom: 7 }}>DAY</div>
+          <DayMenu detail={detail} pointId={p.id} />
+        </div>
         <div>
           <div className="ovp" style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", color: "var(--slate)", marginBottom: 7 }}>GROUP</div>
           {p.groupId ? (

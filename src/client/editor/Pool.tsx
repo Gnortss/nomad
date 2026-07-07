@@ -3,6 +3,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { pooledPoints, groupColor } from "../lib/tripModel";
 import { useEditorStore } from "../state/editorStore";
 import { AddStop } from "./AddStop";
+import { DayMenu } from "./DayMenu";
 import type { TripDetail, Point } from "../lib/types";
 
 export function Pool({ detail }: { detail: TripDetail }) {
@@ -38,9 +39,10 @@ export function Pool({ detail }: { detail: TripDetail }) {
 }
 
 // Visual body of a pool stop card — shared by PoolRow and the DragOverlay in TripEditor.
-export function StopCard({ point, detail }: { point: Point; detail: TripDetail }) {
+// `trailing` replaces the default DRAG → hint (PoolRow puts the day menu there).
+export function StopCard({ point, detail, trailing }: { point: Point; detail: TripDetail; trailing?: React.ReactNode }) {
   return (
-    <span style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", border: "1px solid rgba(87,103,107,.2)", borderRadius: 9, background: "#F8FAFA", textAlign: "left" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", border: "1px solid rgba(87,103,107,.2)", borderRadius: 9, background: "#F8FAFA", textAlign: "left" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{point.name}</span>
         {point.groupId && (
@@ -50,18 +52,19 @@ export function StopCard({ point, detail }: { point: Point; detail: TripDetail }
           </span>
         )}
       </span>
-      <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".06em", color: "var(--slate)", opacity: .8 }}>DRAG →</span>
-    </span>
+      {trailing ?? <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".06em", color: "var(--slate)", opacity: .8 }}>DRAG →</span>}
+    </div>
   );
 }
 
 function PoolRow({ point, detail, onSelect }: { point: Point; detail: TripDetail; onSelect: () => void }) {
-  // div (not button): dnd-kit attributes supply role="button"/tabIndex, and Phase 4 nests a menu button inside.
+  // div (not button): dnd-kit attributes supply role="button"/tabIndex, and the day-menu button nests inside.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: point.id, data: { type: "poolPoint" } });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect}
       style={{ display: "flex", flexDirection: "column", cursor: "grab", opacity: isDragging ? 0.4 : 1 }}>
-      <StopCard point={point} detail={detail} />
+      <StopCard point={point} detail={detail}
+        trailing={<DayMenu detail={detail} pointId={point.id} triggerLabel="＋ Day" triggerStyle={{ height: 22, padding: "0 7px", flex: "none", background: "#fff", border: "1px solid rgba(87,103,107,.28)", borderRadius: 5, fontSize: 10.5, fontWeight: 700, color: "var(--slate)", cursor: "pointer" }} />} />
     </div>
   );
 }

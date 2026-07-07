@@ -5,7 +5,11 @@ import { DetailPanel } from "../../src/client/editor/DetailPanel";
 import type { TripDetail } from "../../src/client/lib/types";
 
 const patch = vi.fn(async () => ({}));
-vi.mock("../../src/client/lib/api", () => ({ usePatchPoint: () => ({ mutateAsync: patch }) }));
+vi.mock("../../src/client/lib/api", () => ({
+  usePatchPoint: () => ({ mutateAsync: patch }),
+  useMoveStop: () => ({ mutate: vi.fn() }),
+  usePutStops: () => ({ mutate: vi.fn() }),
+}));
 
 const detail: TripDetail = {
   trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, vi } from "vitest";
 import { EditorStoreProvider } from "../../src/client/state/editorStore";
@@ -33,5 +33,16 @@ describe("Pool", () => {
     expect(screen.getAllByText("backup options").length).toBeGreaterThan(0);  // filter chip + point's group label
     expect(screen.getByRole("button", { name: /search a place/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /drop a pin/i })).toBeTruthy();
+  });
+
+  it("assigns a pooled point to a day via the ＋ Day menu (appended at the end)", async () => {
+    const f = vi.fn((_url: string, _init: RequestInit) => Promise.resolve(new Response(JSON.stringify({ stops: [], routes: {}, routeStatus: {} }), { status: 200 })));
+    vi.stubGlobal("fetch", f);
+    wrap(<Pool detail={detail} />);
+    fireEvent.click(screen.getByRole("button", { name: /assign to day/i }));
+    fireEvent.click(screen.getByText(/Day 1 — A/, { selector: "button" }));
+    await waitFor(() => expect(f).toHaveBeenCalled());
+    expect(f.mock.calls[0][0]).toBe("/api/days/d0/stops");
+    expect(JSON.parse(f.mock.calls[0][1].body as string)).toEqual({ pointIds: ["p1", "p0"] });
   });
 });
