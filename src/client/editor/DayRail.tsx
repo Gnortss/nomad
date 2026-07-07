@@ -2,6 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { daysWithStats } from "../lib/tripModel";
 import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
 import { useEditorStore } from "../state/editorStore";
+import { useCreateDay } from "../lib/api";
 import type { TripDetail } from "../lib/types";
 
 const STATUS_DOT: Record<string, string> = { booked: "var(--moss)", to_book: "var(--sulfur)", idea: "transparent" };
@@ -13,10 +14,18 @@ function DayDropZone({ dayId, children }: { dayId: string; children: React.React
 
 export function DayRail({ detail }: { detail: TripDetail }) {
   const { focusedDayId, focusDay, selectPoint } = useEditorStore();
+  const createDay = useCreateDay(detail.trip.id);
   const days = daysWithStats(detail);
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 12 }}>
-      <div className="ovp" style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".14em", color: "var(--slate)", padding: "4px 4px 10px" }}>DAYS</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 10px" }}>
+        <span className="ovp" style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".14em", color: "var(--slate)" }}>DAYS</span>
+        <button onClick={() => createDay.mutate({})} disabled={createDay.isPending}
+          style={{ display: "flex", alignItems: "center", gap: 4, height: 24, padding: "0 9px", background: "#fff", border: "1px solid rgba(87,103,107,.28)", borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: "var(--basalt)", cursor: "pointer" }}>+ Add day</button>
+      </div>
+      {days.length === 0 && (
+        <div style={{ fontSize: 12, color: "var(--slate)", padding: "4px 6px 10px" }}>No days yet. Add a day, then drag stops onto it.</div>
+      )}
       {days.map((d) => {
         const focused = focusedDayId === d.id;
         const distText = d.distanceM != null ? `${formatDistance(d.distanceM)} · ${formatDuration(d.durationS!)}` : "No route yet";

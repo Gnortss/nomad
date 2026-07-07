@@ -49,13 +49,20 @@ function EditorBody({ detail }: { detail: TripDetail }) {
         <DndContext onDragEnd={onDragEnd}>
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
             <aside style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#F4F6F6", borderRight: "1px solid rgba(87,103,107,.18)" }}>
-              {detail.points.length === 0 ? <EmptyTrip /> : <DayRail detail={detail} />}
+              <DayRail detail={detail} />
               <Pool detail={detail} />
             </aside>
             <main style={{ flex: 1, position: "relative", minWidth: 0, cursor: droppingPin ? "crosshair" : "auto" }}>
               <MapCanvas onMapClick={onMapClick}>
                 <MapLayer detail={detail} />
               </MapCanvas>
+              {detail.points.length === 0 && (
+                <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
+                  <div style={{ pointerEvents: "auto", background: "rgba(255,255,255,.92)", border: "1px solid rgba(87,103,107,.2)", borderRadius: 10, boxShadow: "0 8px 28px rgba(30,42,44,.16)" }}>
+                    <EmptyTrip />
+                  </div>
+                </div>
+              )}
               {droppingPin && (
                 <div style={{ position: "absolute", left: 16, top: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(255,255,255,.92)", border: "1px solid rgba(87,103,107,.2)", borderRadius: 8, boxShadow: "0 2px 8px rgba(30,42,44,.1)", fontSize: 12, fontWeight: 500 }}>
                   Click the map to place a stop

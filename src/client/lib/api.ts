@@ -51,6 +51,10 @@ export function useCreatePoint(tripId: string) {
   const invalidate = useInvalidateTrip(tripId);
   return useMutation({ mutationFn: (body: object) => createPoint(tripId, body), onSuccess: invalidate });
 }
+export function useCreateDay(tripId: string) {
+  const invalidate = useInvalidateTrip(tripId);
+  return useMutation({ mutationFn: (body: object) => createDay(tripId, body), onSuccess: invalidate });
+}
 export function useCreateTrip() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (name: string) => createTrip(name), onSuccess: () => qc.invalidateQueries({ queryKey: ["trips"] }) });

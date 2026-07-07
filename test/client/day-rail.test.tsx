@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect } from "vitest";
 import { EditorStoreProvider } from "../../src/client/state/editorStore";
 import { DayRail } from "../../src/client/editor/DayRail";
@@ -15,7 +16,7 @@ const detail: TripDetail = {
   routes: [{ dayId: "d0", polyline: "x", distanceM: 214000, durationS: 34800, waypointsHash: "h", computedAt: 0 }],
   stats: { totalDistanceM: 214000, totalDurationS: 34800, totalFuel: null, perDay: { d0: { distanceM: 214000, durationS: 34800, fuel: null, warnLongDay: true } } },
 };
-const wrap = () => render(<EditorStoreProvider><DayRail detail={detail} /></EditorStoreProvider>);
+const wrap = () => render(<QueryClientProvider client={new QueryClient()}><EditorStoreProvider><DayRail detail={detail} /></EditorStoreProvider></QueryClientProvider>);
 
 describe("DayRail", () => {
   it("shows day title, distance, and long-day warning", () => {
