@@ -9,7 +9,7 @@ const STATUS_DOT: Record<string, string> = { booked: "var(--moss)", to_book: "va
 
 function DayDropZone({ dayId, children }: { dayId: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id: dayId });
-  return <div ref={setNodeRef} style={{ marginBottom: 8, borderRadius: 9, outline: isOver ? "2px solid var(--lupine)" : "none" }}>{children}</div>;
+  return <div ref={setNodeRef} style={{ marginBottom: 8, borderRadius: 9, outline: isOver ? "2px solid var(--lupine)" : "none", background: isOver ? "rgba(91,68,201,.08)" : "transparent" }}>{children}</div>;
 }
 
 export function DayRail({ detail }: { detail: TripDetail }) {

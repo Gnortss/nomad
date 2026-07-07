@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { APIProvider } from "@vis.gl/react-google-maps";
-import { DndContext, type DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, MeasuringStrategy, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
 import { useTrip, usePutStops, useCreatePoint } from "../lib/api";
 import { EditorStoreProvider, useEditorStore } from "../state/editorStore";
 import { MapCanvas } from "../map/MapCanvas";
 import { MapLayer } from "../map/MapLayer";
 import { DayRail } from "../editor/DayRail";
-import { Pool } from "../editor/Pool";
+import { Pool, StopCard } from "../editor/Pool";
 import { DetailPanel } from "../editor/DetailPanel";
 import { TopBar } from "../editor/TopBar";
 import { ShareDialog } from "../editor/ShareDialog";
@@ -18,15 +18,31 @@ import { formatDistance, formatDuration } from "../lib/format";
 import type { TripDetail } from "../lib/types";
 
 function EditorBody({ detail }: { detail: TripDetail }) {
-  const { selectedPointId, droppingPin, cancelDropPin } = useEditorStore();
+  const { selectedPointId, droppingPin, cancelDropPin, focusedDayId, focusDay } = useEditorStore();
   const [shareOpen, setShareOpen] = useState(false);
+  const [activePointId, setActivePointId] = useState<string | null>(null);
+  const activePoint = activePointId ? detail.points.find((p) => p.id === activePointId) : undefined;
   const putStops = usePutStops(detail.trip.id);
+  // Distance constraint so a plain click on a draggable row still fires onClick (select).
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const createPoint = useCreatePoint(detail.trip.id);
   const s = detail.stats;
   const stats = `${formatDistance(s.totalDistanceM)} · ${formatDuration(s.totalDurationS)}` + (s.totalFuel != null ? ` · €${Math.round(s.totalFuel)} fuel` : "");
 
+  function onDragStart(e: DragStartEvent) {
+    setActivePointId(e.active.id as string);
+  }
+
+  // Expand the hovered day mid-drag so the user can aim at an exact slot.
+  // focusDay is a toggle, so only dispatch when the hovered day isn't already focused.
+  function onDragOver(e: DragOverEvent) {
+    const overDayId = (e.over?.data.current?.dayId as string | undefined) ?? (e.over?.id as string | undefined);
+    if (overDayId && focusedDayId !== overDayId && detail.days.some((d) => d.id === overDayId)) focusDay(overDayId);
+  }
+
   // Dropping a point on a day (droppable id = dayId): recompute that day's ordered stops on drop.
   function onDragEnd(e: DragEndEvent) {
+    setActivePointId(null);
     const pointId = e.active.id as string;
     const dayId = e.over?.id as string | undefined;
     if (!dayId) return;
@@ -46,7 +62,8 @@ function EditorBody({ detail }: { detail: TripDetail }) {
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
         <TopBar tripName={detail.trip.name} stats={stats} onShare={() => setShareOpen(true)} />
-        <DndContext onDragEnd={onDragEnd}>
+        <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
+          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
             <aside style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#F4F6F6", borderRight: "1px solid rgba(87,103,107,.18)" }}>
               <DayRail detail={detail} />
@@ -72,6 +89,9 @@ function EditorBody({ detail }: { detail: TripDetail }) {
             </main>
             {selectedPointId && <DetailPanel detail={detail} />}
           </div>
+          <DragOverlay>
+            {activePoint && <div style={{ width: 320 }}><StopCard point={activePoint} detail={detail} /></div>}
+          </DragOverlay>
         </DndContext>
         {shareOpen && <ShareDialog tripId={detail.trip.id} onClose={() => setShareOpen(false)} />}
       </div>
