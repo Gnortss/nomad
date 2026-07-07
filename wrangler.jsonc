@@ -18,9 +18,12 @@
       ]
     },
     "production": {
-      "vars": { "BETTER_AUTH_URL": "https://REPLACE_PROD_DOMAIN" },
+      "routes": [
+        { "pattern": "nomad.devsoup.xyz", "custom_domain": true }
+      ],
+      "vars": { "BETTER_AUTH_URL": "https://nomad.devsoup.xyz" },
       "d1_databases": [
-        { "binding": "DB", "database_name": "nomad-prod", "database_id": "REPLACE", "migrations_dir": "migrations" }
+        { "binding": "DB", "database_name": "nomad-prod", "database_id": "a81b1b8a-e778-4499-a397-fffffbc669bd", "migrations_dir": "migrations" }
       ]
     }
   }
