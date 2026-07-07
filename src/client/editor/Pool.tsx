@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
 import { pooledPoints, groupColor } from "../lib/tripModel";
 import { useEditorStore } from "../state/editorStore";
-import type { TripDetail } from "../lib/types";
+import type { TripDetail, Point } from "../lib/types";
 
 export function Pool({ detail }: { detail: TripDetail }) {
   const { selectPoint } = useEditorStore();
@@ -28,20 +29,28 @@ export function Pool({ detail }: { detail: TripDetail }) {
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "2px 12px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
         {pool.map((p) => (
-          <button key={p.id} onClick={() => selectPoint(p.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", border: "1px solid rgba(87,103,107,.2)", borderRadius: 9, background: "#F8FAFA", textAlign: "left", cursor: "pointer" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-              {p.groupId && (
-                <span style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 2, background: groupColor(detail, p.groupId) }} />
-                  <span style={{ fontSize: 10.5, color: "var(--slate)" }}>{detail.groups.find((g) => g.id === p.groupId)?.name}</span>
-                </span>
-              )}
-            </span>
-            <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".06em", color: "var(--slate)", opacity: .8 }}>DRAG →</span>
-          </button>
+          <PoolRow key={p.id} point={p} detail={detail} onSelect={() => selectPoint(p.id)} />
         ))}
       </div>
     </div>
+  );
+}
+
+function PoolRow({ point, detail, onSelect }: { point: Point; detail: TripDetail; onSelect: () => void }) {
+  const { attributes, listeners, setNodeRef } = useDraggable({ id: point.id });
+  return (
+    <button ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect}
+      style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", border: "1px solid rgba(87,103,107,.2)", borderRadius: 9, background: "#F8FAFA", textAlign: "left", cursor: "grab" }}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{point.name}</span>
+        {point.groupId && (
+          <span style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: groupColor(detail, point.groupId) }} />
+            <span style={{ fontSize: 10.5, color: "var(--slate)" }}>{detail.groups.find((g) => g.id === point.groupId)?.name}</span>
+          </span>
+        )}
+      </span>
+      <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".06em", color: "var(--slate)", opacity: .8 }}>DRAG →</span>
+    </button>
   );
 }

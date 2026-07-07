@@ -1,9 +1,15 @@
+import { useDroppable } from "@dnd-kit/core";
 import { daysWithStats } from "../lib/tripModel";
 import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
 import { useEditorStore } from "../state/editorStore";
 import type { TripDetail } from "../lib/types";
 
 const STATUS_DOT: Record<string, string> = { booked: "var(--moss)", to_book: "var(--sulfur)", idea: "transparent" };
+
+function DayDropZone({ dayId, children }: { dayId: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: dayId });
+  return <div ref={setNodeRef} style={{ marginBottom: 8, borderRadius: 9, outline: isOver ? "2px solid var(--lupine)" : "none" }}>{children}</div>;
+}
 
 export function DayRail({ detail }: { detail: TripDetail }) {
   const { focusedDayId, focusDay, selectPoint } = useEditorStore();
@@ -15,7 +21,7 @@ export function DayRail({ detail }: { detail: TripDetail }) {
         const focused = focusedDayId === d.id;
         const distText = d.distanceM != null ? `${formatDistance(d.distanceM)} · ${formatDuration(d.durationS!)}` : "No route yet";
         return (
-          <div key={d.id} style={{ marginBottom: 8 }}>
+          <DayDropZone key={d.id} dayId={d.id}>
             <button onClick={() => focusDay(d.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "8px 10px", background: focused ? "#fff" : "transparent", border: `1px solid ${focused ? "rgba(91,68,201,.5)" : "transparent"}`, borderLeft: `3px solid ${focused ? "var(--lupine)" : "transparent"}`, borderRadius: 9, textAlign: "left", cursor: "pointer" }}>
               <span className="ovp" style={{ width: 34, height: 30, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: d.warnLongDay ? "#fff" : "var(--basalt)", color: d.warnLongDay ? "var(--basalt)" : "#fff", border: `2px solid ${d.warnLongDay ? "var(--sulfur)" : "var(--basalt)"}`, borderRadius: 8, fontWeight: 800, fontSize: 15 }}>{d.position + 1}</span>
               <span style={{ flex: 1, minWidth: 0 }}>
@@ -37,7 +43,7 @@ export function DayRail({ detail }: { detail: TripDetail }) {
                 ))}
               </div>
             )}
-          </div>
+          </DayDropZone>
         );
       })}
     </div>
