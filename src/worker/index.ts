@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { createAuth, type AppEnv } from "./auth";
 import { tripsRouter } from "./routes/trips";
+import { pointsRouter } from "./routes/points";
 
 export type Env = { DB: D1Database };
 type Variables = { user: { id: string } | null };
@@ -21,5 +22,6 @@ app.use("/api/*", async (c, next) => {
 });
 
 app.route("/", tripsRouter);
+app.route("/", pointsRouter);
 
 export default app;
