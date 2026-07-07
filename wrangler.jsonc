@@ -9,11 +9,13 @@
   ],
   "env": {
     "preview": {
+      "vars": { "BETTER_AUTH_URL": "https://REPLACE_PREVIEW_DOMAIN" },
       "d1_databases": [
         { "binding": "DB", "database_name": "roadline-preview", "database_id": "REPLACE", "migrations_dir": "migrations" }
       ]
     },
     "production": {
+      "vars": { "BETTER_AUTH_URL": "https://REPLACE_PROD_DOMAIN" },
       "d1_databases": [
         { "binding": "DB", "database_name": "roadline-prod", "database_id": "REPLACE", "migrations_dir": "migrations" }
       ]
