@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { APIProvider } from "@vis.gl/react-google-maps";
-import { DndContext, DragOverlay, MeasuringStrategy, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
-import { useTrip, usePutStops, useCreatePoint } from "../lib/api";
+import { DndContext, DragOverlay, MeasuringStrategy, PointerSensor, pointerWithin, rectIntersection, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
+import { useTrip, useMoveStop, useCreatePoint } from "../lib/api";
 import { EditorStoreProvider, useEditorStore } from "../state/editorStore";
 import { MapCanvas } from "../map/MapCanvas";
 import { MapLayer } from "../map/MapLayer";
@@ -12,17 +12,28 @@ import { DetailPanel } from "../editor/DetailPanel";
 import { TopBar } from "../editor/TopBar";
 import { ShareDialog } from "../editor/ShareDialog";
 import { EmptyTrip } from "../editor/states";
-import { computeDrop } from "../editor/assign";
+import { computeDrop, resolveDrop, type OverInfo } from "../editor/assign";
 import { stopsForDay } from "../lib/tripModel";
 import { formatDistance, formatDuration } from "../lib/format";
 import type { TripDetail } from "../lib/types";
+
+// Day containers geometrically contain their stop rows, so prioritize: stop rows
+// first (precise insertion), then day containers (append), then a rect fallback
+// for fast pointer movement.
+const collisionDetection: CollisionDetection = (args) => {
+  const stops = pointerWithin({ ...args, droppableContainers: args.droppableContainers.filter((c) => c.data.current?.type === "dayStop") });
+  if (stops.length) return stops;
+  const days = pointerWithin({ ...args, droppableContainers: args.droppableContainers.filter((c) => c.data.current?.type === "day") });
+  if (days.length) return days;
+  return rectIntersection(args);
+};
 
 function EditorBody({ detail }: { detail: TripDetail }) {
   const { selectedPointId, droppingPin, cancelDropPin, focusedDayId, focusDay } = useEditorStore();
   const [shareOpen, setShareOpen] = useState(false);
   const [activePointId, setActivePointId] = useState<string | null>(null);
   const activePoint = activePointId ? detail.points.find((p) => p.id === activePointId) : undefined;
-  const putStops = usePutStops(detail.trip.id);
+  const moveStop = useMoveStop(detail.trip.id);
   // Distance constraint so a plain click on a draggable row still fires onClick (select).
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const createPoint = useCreatePoint(detail.trip.id);
@@ -40,15 +51,19 @@ function EditorBody({ detail }: { detail: TripDetail }) {
     if (overDayId && focusedDayId !== overDayId && detail.days.some((d) => d.id === overDayId)) focusDay(overDayId);
   }
 
-  // Dropping a point on a day (droppable id = dayId): recompute that day's ordered stops on drop.
+  // Drop: resolve target day + insertion index (stop row = insert before it, day
+  // container = append), then rewrite the affected day orders.
   function onDragEnd(e: DragEndEvent) {
     setActivePointId(null);
-    const pointId = e.active.id as string;
-    const dayId = e.over?.id as string | undefined;
-    if (!dayId) return;
-    const current = stopsForDay(detail, dayId).map((p) => p.id);
-    const pointIds = computeDrop(current, pointId, current.length);
-    putStops.mutate({ dayId, pointIds });
+    if (!e.over) return;
+    const pointId = String(e.active.id);
+    const drop = resolveDrop(pointId, { id: String(e.over.id), data: e.over.data.current as OverInfo["data"] }, detail);
+    if (!drop) return;
+    const current = stopsForDay(detail, drop.toDayId).map((p) => p.id);
+    const toPointIds = computeDrop(current, pointId, drop.toIndex);
+    if (drop.fromDayId === drop.toDayId && toPointIds.join() === current.join()) return; // no-op reorder
+    const fromPointIds = drop.fromDayId ? stopsForDay(detail, drop.fromDayId).map((p) => p.id).filter((id) => id !== pointId) : [];
+    moveStop.mutate({ fromDayId: drop.fromDayId, fromPointIds, toDayId: drop.toDayId, toPointIds });
   }
 
   // Drop-pin mode: the next map click creates a user-sourced point in the pool.
@@ -62,7 +77,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
         <TopBar tripName={detail.trip.name} stats={stats} onShare={() => setShareOpen(true)} />
-        <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
+        <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
             <aside style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#F4F6F6", borderRight: "1px solid rgba(87,103,107,.18)" }}>

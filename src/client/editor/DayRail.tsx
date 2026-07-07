@@ -1,15 +1,31 @@
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { daysWithStats } from "../lib/tripModel";
 import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
 import { useEditorStore } from "../state/editorStore";
 import { useCreateDay } from "../lib/api";
-import type { TripDetail } from "../lib/types";
+import type { TripDetail, Point } from "../lib/types";
 
 const STATUS_DOT: Record<string, string> = { booked: "var(--moss)", to_book: "var(--sulfur)", idea: "transparent" };
 
 function DayDropZone({ dayId, children }: { dayId: string; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({ id: dayId });
+  const { setNodeRef, isOver } = useDroppable({ id: dayId, data: { type: "day" } });
   return <div ref={setNodeRef} style={{ marginBottom: 8, borderRadius: 9, outline: isOver ? "2px solid var(--lupine)" : "none", background: isOver ? "rgba(91,68,201,.08)" : "transparent" }}>{children}</div>;
+}
+
+function DayStopRow({ point: p, dayId, index, count, onSelect }: { point: Point; dayId: string; index: number; count: number; onSelect: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, active, over } = useSortable({ id: p.id, data: { type: "dayStop", dayId } });
+  // Insertion line for foreign drags only (pool→day, other-day→day); same-day reorders animate via the sortable transform instead.
+  const showLine = over?.id === p.id && !!active && active.id !== p.id && active.data.current?.dayId !== dayId;
+  return (
+    <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, boxShadow: showLine ? "0 -2px 0 var(--lupine)" : "none", display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: 7, background: "transparent", textAlign: "left", cursor: "grab" }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+      {endpointLabel(index, count) && <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", color: "var(--slate)", background: "rgba(87,103,107,.12)", padding: "2px 5px", borderRadius: 4 }}>{endpointLabel(index, count)}</span>}
+      <span style={{ width: 9, height: 9, flex: "none", borderRadius: "50%", background: STATUS_DOT[p.bookingStatus], border: p.bookingStatus === "idea" ? "1.5px dashed #8797a0" : "none" }} />
+    </div>
+  );
 }
 
 export function DayRail({ detail }: { detail: TripDetail }) {
@@ -42,15 +58,13 @@ export function DayRail({ detail }: { detail: TripDetail }) {
               </span>
             </button>
             {focused && (
-              <div style={{ margin: "2px 0 4px 44px", display: "flex", flexDirection: "column", gap: 1 }}>
-                {d.stops.map((p, i) => (
-                  <button key={p.id} onClick={() => selectPoint(p.id)} style={{ display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", border: "none", borderRadius: 7, background: "transparent", textAlign: "left", cursor: "pointer" }}>
-                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
-                    {endpointLabel(i, d.stops.length) && <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", color: "var(--slate)", background: "rgba(87,103,107,.12)", padding: "2px 5px", borderRadius: 4 }}>{endpointLabel(i, d.stops.length)}</span>}
-                    <span style={{ width: 9, height: 9, flex: "none", borderRadius: "50%", background: STATUS_DOT[p.bookingStatus], border: p.bookingStatus === "idea" ? "1.5px dashed #8797a0" : "none" }} />
-                  </button>
-                ))}
-              </div>
+              <SortableContext items={d.stops.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                <div style={{ margin: "2px 0 4px 44px", display: "flex", flexDirection: "column", gap: 1 }}>
+                  {d.stops.map((p, i) => (
+                    <DayStopRow key={p.id} point={p} dayId={d.id} index={i} count={d.stops.length} onSelect={() => selectPoint(p.id)} />
+                  ))}
+                </div>
+              </SortableContext>
             )}
           </DayDropZone>
         );

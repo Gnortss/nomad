@@ -43,6 +43,18 @@ export function usePutStops(tripId: string) {
   const invalidate = useInvalidateTrip(tripId);
   return useMutation({ mutationFn: (v: { dayId: string; pointIds: string[] }) => putStops(v.dayId, v.pointIds), onSuccess: invalidate });
 }
+// Cross-day moves need two PUTs (PUT /stops rewrites one day only): remove from the
+// source day first, then write the target day. Single invalidation after both.
+export function useMoveStop(tripId: string) {
+  const invalidate = useInvalidateTrip(tripId);
+  return useMutation({
+    mutationFn: async (v: { fromDayId: string | null; fromPointIds: string[]; toDayId: string; toPointIds: string[] }) => {
+      if (v.fromDayId && v.fromDayId !== v.toDayId) await putStops(v.fromDayId, v.fromPointIds);
+      await putStops(v.toDayId, v.toPointIds);
+    },
+    onSuccess: invalidate,
+  });
+}
 export function usePatchPoint(tripId: string) {
   const invalidate = useInvalidateTrip(tripId);
   return useMutation({ mutationFn: (v: { id: string; body: object }) => patchPoint(v.id, v.body), onSuccess: invalidate });

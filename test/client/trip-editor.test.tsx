@@ -10,11 +10,11 @@ vi.mock("../../src/client/lib/api", () => ({
     groups: [], points: [{ id: "p0", tripId: "t1", name: "P", lat: 1, lng: 1, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null }], days: [], dayStops: [], routes: [],
     stats: { totalDistanceM: 214000, totalDurationS: 11400, totalFuel: null, perDay: {} },
   }, isPending: false }),
-  usePutStops: () => ({ mutate: vi.fn() }),
+  useMoveStop: () => ({ mutate: vi.fn() }),
   useCreatePoint: () => ({ mutate: vi.fn() }),
 }));
 vi.mock("../../src/client/editor/DayRail", () => ({ DayRail: () => <div data-testid="rail" /> }));
-vi.mock("../../src/client/editor/Pool", () => ({ Pool: () => <div data-testid="pool" /> }));
+vi.mock("../../src/client/editor/Pool", () => ({ Pool: () => <div data-testid="pool" />, StopCard: () => null }));
 vi.mock("../../src/client/editor/DetailPanel", () => ({ DetailPanel: () => null }));
 vi.mock("../../src/client/map/MapLayer", () => ({ MapLayer: () => null }));
 
