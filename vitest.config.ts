@@ -1,10 +1,14 @@
 import { defineWorkersConfig, readD1Migrations } from "@cloudflare/vitest-pool-workers/config";
 import path from "node:path";
 
+// Worker/D1 integration tests (workerd pool). Client React tests run separately
+// via vitest.client.ts (jsdom) — kept as a distinct invocation because the
+// pool-workers Vite pipeline must own the whole config, not sit under `projects`.
 export default defineWorkersConfig(async () => {
   const migrations = await readD1Migrations(path.join(import.meta.dirname, "migrations"));
   return {
     test: {
+      include: ["test/worker/**/*.test.ts"],
       setupFiles: ["./test/apply-migrations.ts"],
       poolOptions: {
         workers: {

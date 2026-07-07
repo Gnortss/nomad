@@ -1,4 +1,5 @@
 import { signOut } from "../lib/auth";
+import { MapCanvas } from "../map/MapCanvas";
 
 export function AppShell() {
   return (
@@ -13,7 +14,9 @@ export function AppShell() {
           Sign out
         </button>
       </header>
-      <div id="app-body" style={{ flex: 1, minHeight: 0 }} />
+      <div id="app-body" style={{ flex: 1, minHeight: 0 }}>
+        <MapCanvas />
+      </div>
     </div>
   );
 }

@@ -14,6 +14,8 @@ export function createAuth(env: AppEnv) {
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
+    telemetry: { enabled: false }, // avoids node:os import; no place in a 2-user app
+
     database: drizzleAdapter(getDb(env), { provider: "sqlite", schema }),
     socialProviders: {
       google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET },
