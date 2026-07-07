@@ -7,5 +7,6 @@ export default defineConfig({
     name: "client",
     include: ["test/client/**/*.test.{ts,tsx}"],
     environment: "jsdom",
+    globals: true,
   },
 });
