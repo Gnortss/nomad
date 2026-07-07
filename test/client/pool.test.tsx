@@ -1,8 +1,13 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { describe, it, expect, vi } from "vitest";
 import { EditorStoreProvider } from "../../src/client/state/editorStore";
-import { Pool } from "../../src/client/editor/Pool";
 import type { TripDetail } from "../../src/client/lib/types";
+
+// AddStop (embedded in Pool) reads the places library; not loaded in jsdom.
+vi.mock("@vis.gl/react-google-maps", () => ({ useMapsLibrary: () => null }));
+
+import { Pool } from "../../src/client/editor/Pool";
 
 const detail: TripDetail = {
   trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
@@ -16,9 +21,13 @@ const detail: TripDetail = {
   routes: [], stats: { totalDistanceM: 0, totalDurationS: 0, totalFuel: null, perDay: {} },
 };
 
+const wrap = (ui: React.ReactNode) => render(
+  <QueryClientProvider client={new QueryClient()}><EditorStoreProvider>{ui}</EditorStoreProvider></QueryClientProvider>
+);
+
 describe("Pool", () => {
   it("lists only unassigned points with their group chip and add buttons", () => {
-    render(<EditorStoreProvider><Pool detail={detail} /></EditorStoreProvider>);
+    wrap(<Pool detail={detail} />);
     expect(screen.getByText("Dettifoss")).toBeTruthy();
     expect(screen.queryByText("Assigned")).toBeNull();
     expect(screen.getAllByText("backup options").length).toBeGreaterThan(0);  // filter chip + point's group label

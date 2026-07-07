@@ -47,6 +47,10 @@ export function usePatchPoint(tripId: string) {
   const invalidate = useInvalidateTrip(tripId);
   return useMutation({ mutationFn: (v: { id: string; body: object }) => patchPoint(v.id, v.body), onSuccess: invalidate });
 }
+export function useCreatePoint(tripId: string) {
+  const invalidate = useInvalidateTrip(tripId);
+  return useMutation({ mutationFn: (body: object) => createPoint(tripId, body), onSuccess: invalidate });
+}
 export function useCreateTrip() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (name: string) => createTrip(name), onSuccess: () => qc.invalidateQueries({ queryKey: ["trips"] }) });

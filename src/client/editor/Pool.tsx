@@ -6,7 +6,7 @@ import { AddStop } from "./AddStop";
 import type { TripDetail, Point } from "../lib/types";
 
 export function Pool({ detail }: { detail: TripDetail }) {
-  const { selectPoint } = useEditorStore();
+  const { selectPoint, startDropPin, droppingPin } = useEditorStore();
   const [filterGroup, setFilterGroup] = useState<string | null>(null);
   let pool = pooledPoints(detail);
   if (filterGroup) pool = pool.filter((p) => p.groupId === filterGroup);
@@ -17,7 +17,7 @@ export function Pool({ detail }: { detail: TripDetail }) {
         <div className="ovp" style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".14em", color: "var(--slate)" }}>UNASSIGNED</div>
         <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
           <AddStop tripId={detail.trip.id} />
-          <button style={{ height: 32, padding: "0 12px", background: "#fff", border: "1px solid rgba(87,103,107,.28)", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>📍 Drop a pin</button>
+          <button onClick={startDropPin} style={{ height: 32, padding: "0 12px", background: droppingPin ? "var(--lupine)" : "#fff", color: droppingPin ? "#fff" : "inherit", border: "1px solid rgba(87,103,107,.28)", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>📍 Drop a pin</button>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
           {detail.groups.map((g) => (

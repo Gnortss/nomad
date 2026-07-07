@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import { getShare } from "../lib/api";
 import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
 import { MapCanvas } from "../map/MapCanvas";
@@ -26,7 +27,9 @@ export function ShareView() {
         </div>
         <div style={{ fontSize: 11.5, color: "var(--slate)", marginTop: 2 }}>Shared itinerary · view only</div>
       </header>
-      <div style={{ height: "40vh", position: "relative", flex: "none" }}><MapCanvas /></div>
+      <div style={{ height: "40vh", position: "relative", flex: "none" }}>
+        <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}><MapCanvas /></APIProvider>
+      </div>
       <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
         {days.map((d) => (
           <div key={d.id} style={{ marginBottom: 16 }}>

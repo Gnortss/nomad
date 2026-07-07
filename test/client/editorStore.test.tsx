@@ -20,4 +20,13 @@ describe("editorStore", () => {
     act(() => result.current.clearFocus());
     expect(result.current.focusedDayId).toBeNull();
   });
+
+  it("drop-pin mode starts and cancels", () => {
+    const { result } = renderHook(() => useEditorStore(), { wrapper });
+    expect(result.current.droppingPin).toBe(false);
+    act(() => result.current.startDropPin());
+    expect(result.current.droppingPin).toBe(true);
+    act(() => result.current.cancelDropPin());
+    expect(result.current.droppingPin).toBe(false);
+  });
 });

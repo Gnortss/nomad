@@ -11,6 +11,7 @@ vi.mock("../../src/client/lib/api", () => ({
     stats: { totalDistanceM: 214000, totalDurationS: 11400, totalFuel: null, perDay: {} },
   }, isPending: false }),
   usePutStops: () => ({ mutate: vi.fn() }),
+  useCreatePoint: () => ({ mutate: vi.fn() }),
 }));
 vi.mock("../../src/client/editor/DayRail", () => ({ DayRail: () => <div data-testid="rail" /> }));
 vi.mock("../../src/client/editor/Pool", () => ({ Pool: () => <div data-testid="pool" /> }));
