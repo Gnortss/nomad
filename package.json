@@ -18,7 +18,8 @@
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.28",
-    "nanoid": "^5.1.16"
+    "nanoid": "^5.1.16",
+    "react-router-dom": "^7.18.1"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.34.0",
