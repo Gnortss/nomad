@@ -6,6 +6,7 @@ import { daysRouter } from "./routes/days";
 import { makeStopsRouter } from "./routes/stops";
 import { tripDetailRouter } from "./routes/trip-detail";
 import { groupsRouter } from "./routes/groups";
+import { shareRouter } from "./routes/share";
 
 export type Env = { DB: D1Database };
 type Variables = { user: { id: string } | null };
@@ -31,5 +32,6 @@ app.route("/", daysRouter);
 app.route("/", makeStopsRouter());
 app.route("/", tripDetailRouter);
 app.route("/", groupsRouter);
+app.route("/", shareRouter);
 
 export default app;
