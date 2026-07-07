@@ -14,7 +14,7 @@ import { TopBar } from "../editor/TopBar";
 import { ShareDialog } from "../editor/ShareDialog";
 import { EmptyTrip } from "../editor/states";
 import { computeDrop, resolveDrop, type OverInfo } from "../editor/assign";
-import { stopsForDay } from "../lib/tripModel";
+import { routeStopsForDay } from "../lib/tripModel";
 import { formatDistance, formatDuration } from "../lib/format";
 import type { TripDetail } from "../lib/types";
 
@@ -30,7 +30,7 @@ const collisionDetection: CollisionDetection = (args) => {
 };
 
 function EditorBody({ detail }: { detail: TripDetail }) {
-  const { selectedPointId, droppingPin, cancelDropPin, focusedDayId, focusDay } = useEditorStore();
+  const { selectedPointId, droppingPin, cancelDropPin, selectDay, expandDay } = useEditorStore();
   const [shareOpen, setShareOpen] = useState(false);
   const [activePointId, setActivePointId] = useState<string | null>(null);
   const activePoint = activePointId ? detail.points.find((p) => p.id === activePointId) : undefined;
@@ -45,11 +45,12 @@ function EditorBody({ detail }: { detail: TripDetail }) {
     setActivePointId(e.active.id as string);
   }
 
-  // Expand the hovered day mid-drag so the user can aim at an exact slot.
-  // focusDay is a toggle, so only dispatch when the hovered day isn't already focused.
+  // Expand the hovered day mid-drag so the user can aim at an exact slot, and
+  // select it so the map highlight follows the drag. Both reducers bail out
+  // when already applied, so repeated dragOver events don't rerender.
   function onDragOver(e: DragOverEvent) {
     const overDayId = (e.over?.data.current?.dayId as string | undefined) ?? (e.over?.id as string | undefined);
-    if (overDayId && focusedDayId !== overDayId && detail.days.some((d) => d.id === overDayId)) focusDay(overDayId);
+    if (overDayId && detail.days.some((d) => d.id === overDayId)) { expandDay(overDayId); selectDay(overDayId); }
   }
 
   // Drop: resolve target day + insertion index (stop row = insert before it, day
@@ -60,10 +61,10 @@ function EditorBody({ detail }: { detail: TripDetail }) {
     const pointId = String(e.active.id);
     const drop = resolveDrop(pointId, { id: String(e.over.id), data: e.over.data.current as OverInfo["data"] }, detail);
     if (!drop) return;
-    const current = stopsForDay(detail, drop.toDayId).map((p) => p.id);
+    const current = routeStopsForDay(detail, drop.toDayId).map((p) => p.id);
     const toPointIds = computeDrop(current, pointId, drop.toIndex);
     if (drop.fromDayId === drop.toDayId && toPointIds.join() === current.join()) return; // no-op reorder
-    const fromPointIds = drop.fromDayId ? stopsForDay(detail, drop.fromDayId).map((p) => p.id).filter((id) => id !== pointId) : [];
+    const fromPointIds = drop.fromDayId ? routeStopsForDay(detail, drop.fromDayId).map((p) => p.id).filter((id) => id !== pointId) : [];
     moveStop.mutate({ fromDayId: drop.fromDayId, fromPointIds, toDayId: drop.toDayId, toPointIds });
   }
 
@@ -77,7 +78,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
-        <TopBar tripName={detail.trip.name} stats={stats} onShare={() => setShareOpen(true)} />
+        <TopBar tripId={detail.trip.id} tripName={detail.trip.name} stats={stats} onShare={() => setShareOpen(true)} />
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>

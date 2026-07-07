@@ -21,9 +21,9 @@ const detail = {
   points: [point("a"), point("b"), point("c"), point("x")],
   days: [{ id: "d1", tripId: "t1", position: 0, title: null }, { id: "d2", tripId: "t1", position: 1, title: null }],
   dayStops: [
-    { dayId: "d1", pointId: "a", position: 0 },
-    { dayId: "d1", pointId: "b", position: 1 },
-    { dayId: "d2", pointId: "c", position: 0 },
+    { dayId: "d1", pointId: "a", position: 0, inRoute: true },
+    { dayId: "d1", pointId: "b", position: 1, inRoute: true },
+    { dayId: "d2", pointId: "c", position: 0, inRoute: true },
   ],
   routes: [],
   stats: { totalDistanceM: 0, totalDurationS: 0, totalFuel: null, perDay: {} },

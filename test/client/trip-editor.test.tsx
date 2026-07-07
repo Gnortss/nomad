@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("react-router-dom", async (orig) => ({ ...(await orig<any>()), useParams: () => ({ id: "t1" }) }));
@@ -12,6 +13,8 @@ vi.mock("../../src/client/lib/api", () => ({
   }, isPending: false }),
   useMoveStop: () => ({ mutate: vi.fn() }),
   useCreatePoint: () => ({ mutate: vi.fn() }),
+  usePatchTrip: () => ({ mutate: vi.fn() }),
+  useDeleteTrip: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 vi.mock("../../src/client/editor/DayRail", () => ({ DayRail: () => <div data-testid="rail" /> }));
 vi.mock("../../src/client/editor/Pool", () => ({ Pool: () => <div data-testid="pool" />, StopCard: () => null }));
@@ -22,10 +25,10 @@ import { TripEditorScreen } from "../../src/client/screens/TripEditor";
 
 describe("TripEditor layout", () => {
   it("renders one map, the rail, and the trip stats", () => {
-    render(<QueryClientProvider client={new QueryClient()}><TripEditorScreen /></QueryClientProvider>);
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><TripEditorScreen /></MemoryRouter></QueryClientProvider>);
     expect(screen.getAllByTestId("map")).toHaveLength(1);
     expect(screen.getByTestId("rail")).toBeTruthy();
-    expect(screen.getByText(/Iceland/)).toBeTruthy();
+    expect(screen.getByDisplayValue("Iceland")).toBeTruthy(); // trip name is now an inline-edit input
     expect(screen.getByText(/214 km/)).toBeTruthy();
   });
 });

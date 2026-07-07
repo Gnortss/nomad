@@ -26,7 +26,7 @@ describe("share", () => {
     expect(shareToken).toHaveLength(21);
 
     const anon = appWith(null, shareRouter);
-    const res = await call(anon, new Request(`http://x/s/${shareToken}`));
+    const res = await call(anon, new Request(`http://x/api/share/${shareToken}`));
     expect(res.status).toBe(200);
     const body = await res.json<any>();
     expect(body.trip.name).toBe("Iceland");
@@ -44,7 +44,7 @@ describe("share", () => {
     const rotated = (await (await call(owner, new Request("http://x/api/trips/t1/share", { method: "DELETE" }))).json<{ shareToken: string }>()).shareToken;
     expect(rotated).not.toBe(first);
     const anon = appWith(null, shareRouter);
-    expect((await call(anon, new Request(`http://x/s/${first}`))).status).toBe(404);
-    expect((await call(anon, new Request(`http://x/s/${rotated}`))).status).toBe(200);
+    expect((await call(anon, new Request(`http://x/api/share/${first}`))).status).toBe(404);
+    expect((await call(anon, new Request(`http://x/api/share/${rotated}`))).status).toBe(200);
   });
 });

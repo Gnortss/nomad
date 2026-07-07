@@ -52,6 +52,32 @@ describe("reconcileDayRoutes", () => {
     expect(calls).toBe(after); // no new calls
   });
 
+  it("excludes attached (non-route) stops from waypoints and origin chaining", async () => {
+    const now = Date.now();
+    // p3 attached to d0 as its last position, p4 attached to d1: neither may appear
+    // in any waypoint list, and d1's origin must still be p1 (d0's last ROUTE stop).
+    await db().insert(points).values([
+      { id: "p3", tripId: "t1", name: "Hotel", lat: 50, lng: 50, coordSource: "user", type: "hotel", bookingStatus: "idea", createdAt: now },
+      { id: "p4", tripId: "t1", name: "POI", lat: 60, lng: 60, coordSource: "user", type: "poi", bookingStatus: "idea", createdAt: now },
+    ]);
+    await db().insert(dayStops).values([
+      { dayId: "d0", pointId: "p3", position: 2, inRoute: false },
+      { dayId: "d1", pointId: "p4", position: 1, inRoute: false },
+    ]);
+    const seen: Array<Array<{ lat: number; lng: number }>> = [];
+    const compute = async (wp: Array<{ lat: number; lng: number }>) => {
+      seen.push(wp);
+      return { polyline: "x", distanceM: 1, durationS: 1 };
+    };
+    const status = await reconcileDayRoutes(db(), "t1", compute);
+    expect(status.d0).toBe("ok");
+    expect(status.d1).toBe("ok");
+    const allCoords = seen.flat();
+    expect(allCoords.some((c) => c.lat === 50 || c.lat === 60)).toBe(false); // attached never routed
+    const day1 = seen.find((wp) => wp.some((c) => c.lat === 3))!;
+    expect(day1[0].lat).toBe(2); // origin is p1, not the attached hotel
+  });
+
   it("marks a day failed but keeps other days when compute throws", async () => {
     const compute = async (wp: Array<{ lat: number; lng: number }>) => {
       if (wp[0].lat === 2) throw new Error("google down"); // fail only day1

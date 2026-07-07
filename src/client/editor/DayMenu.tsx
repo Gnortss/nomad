@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { useMoveStop, usePutStops } from "../lib/api";
-import { stopsForDay } from "../lib/tripModel";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useMoveStop, useUnassignStop } from "../lib/api";
+import { routeStopsForDay } from "../lib/tripModel";
 import type { TripDetail } from "../lib/types";
 
 // Non-drag alternative to drag-and-drop assignment: a small popover listing days.
@@ -9,7 +9,7 @@ import type { TripDetail } from "../lib/types";
 export function DayMenu({ detail, pointId, triggerLabel, triggerStyle }: { detail: TripDetail; pointId: string; triggerLabel?: string; triggerStyle?: React.CSSProperties }) {
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const moveStop = useMoveStop(detail.trip.id);
-  const putStops = usePutStops(detail.trip.id);
+  const unassignStop = useUnassignStop(detail.trip.id);
   const menuRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const fromDayId = detail.dayStops.find((s) => s.pointId === pointId)?.dayId ?? null;
@@ -26,6 +26,14 @@ export function DayMenu({ detail, pointId, triggerLabel, triggerStyle }: { detai
     return () => document.removeEventListener("pointerdown", onDown);
   }, [pos]);
 
+  // Clamp into the viewport after render (menu height isn't known until then),
+  // so opening near the bottom of the screen doesn't push the list off-screen.
+  useLayoutEffect(() => {
+    if (!pos || !menuRef.current) return;
+    const maxTop = window.innerHeight - menuRef.current.offsetHeight - 8;
+    if (pos.top > maxTop) setPos({ ...pos, top: Math.max(8, maxTop) });
+  }, [pos]);
+
   function toggle(e: React.MouseEvent) {
     e.stopPropagation(); // don't select the row underneath
     if (pos) { setPos(null); return; }
@@ -33,16 +41,14 @@ export function DayMenu({ detail, pointId, triggerLabel, triggerStyle }: { detai
     setPos({ left: Math.max(8, r.right - 190), top: r.bottom + 4 });
   }
 
-  function fromPointIdsWithout() {
-    return fromDayId ? stopsForDay(detail, fromDayId).map((p) => p.id).filter((id) => id !== pointId) : [];
-  }
   function assign(dayId: string) {
-    const toPointIds = [...stopsForDay(detail, dayId).map((p) => p.id).filter((id) => id !== pointId), pointId];
-    moveStop.mutate({ fromDayId, fromPointIds: fromPointIdsWithout(), toDayId: dayId, toPointIds });
+    const fromPointIds = fromDayId ? routeStopsForDay(detail, fromDayId).map((p) => p.id).filter((id) => id !== pointId) : [];
+    const toPointIds = [...routeStopsForDay(detail, dayId).map((p) => p.id).filter((id) => id !== pointId), pointId];
+    moveStop.mutate({ fromDayId, fromPointIds, toDayId: dayId, toPointIds });
     setPos(null);
   }
   function unassign() {
-    if (fromDayId) putStops.mutate({ dayId: fromDayId, pointIds: fromPointIdsWithout() });
+    if (fromDayId) unassignStop.mutate({ dayId: fromDayId, pointId });
     setPos(null);
   }
 
@@ -54,7 +60,7 @@ export function DayMenu({ detail, pointId, triggerLabel, triggerStyle }: { detai
         {label}
       </button>
       {pos && (
-        <div ref={menuRef} style={{ position: "fixed", left: pos.left, top: pos.top, width: 190, zIndex: 30, background: "#fff", border: "1px solid rgba(87,103,107,.2)", borderRadius: 7, boxShadow: "0 8px 28px rgba(30,42,44,.16)", overflow: "hidden" }}>
+        <div ref={menuRef} style={{ position: "fixed", left: pos.left, top: pos.top, width: 190, zIndex: 30, background: "#fff", border: "1px solid rgba(87,103,107,.2)", borderRadius: 7, boxShadow: "0 8px 28px rgba(30,42,44,.16)", maxHeight: "calc(100vh - 16px)", overflowY: "auto" }}>
           {days.length === 0 && <div style={{ padding: "8px 11px", fontSize: 12.5, color: "var(--slate)" }}>No days yet</div>}
           {days.map((d) => (
             <button key={d.id} onClick={(e) => { e.stopPropagation(); assign(d.id); }}

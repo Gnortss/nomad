@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb, days, dayStops, points, dayRoutes } from "../db/schema";
 import { dayWaypoints, waypointsHash, type Coord } from "./waypoints";
 import type { RouteComputer } from "./routes-google";
@@ -6,10 +6,12 @@ import type { RouteComputer } from "./routes-google";
 type Db = ReturnType<typeof getDb>;
 const THIRTY_DAYS = 30 * 24 * 3600 * 1000;
 
+// Route stops only: attached stops (inRoute=false) belong to the day but are
+// never waypoints, and never become the next day's origin.
 async function orderedStopCoords(db: Db, dayId: string): Promise<Coord[]> {
   const rows = await db.select({ lat: points.lat, lng: points.lng })
     .from(dayStops).innerJoin(points, eq(dayStops.pointId, points.id))
-    .where(eq(dayStops.dayId, dayId)).orderBy(asc(dayStops.position));
+    .where(and(eq(dayStops.dayId, dayId), eq(dayStops.inRoute, true))).orderBy(asc(dayStops.position));
   return rows.map((r) => ({ lat: r.lat, lng: r.lng }));
 }
 

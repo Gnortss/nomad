@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
+import { MapPin } from "lucide-react";
 import { pooledPoints, groupColor } from "../lib/tripModel";
-import { TYPE_ICON } from "../lib/format";
+import { TypeIcon } from "../components/TypeIcon";
 import { useEditorStore } from "../state/editorStore";
 import { AddStop } from "./AddStop";
 import { DayMenu } from "./DayMenu";
@@ -19,7 +20,7 @@ export function Pool({ detail }: { detail: TripDetail }) {
         <div className="ovp" style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".14em", color: "var(--slate)" }}>UNASSIGNED</div>
         <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
           <AddStop tripId={detail.trip.id} />
-          <button onClick={startDropPin} style={{ height: 32, padding: "0 12px", background: droppingPin ? "var(--lupine)" : "#fff", color: droppingPin ? "#fff" : "inherit", border: "1px solid rgba(87,103,107,.28)", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>📍 Drop a pin</button>
+          <button onClick={startDropPin} style={{ height: 32, padding: "0 12px", background: droppingPin ? "var(--lupine)" : "#fff", color: droppingPin ? "#fff" : "inherit", border: "1px solid rgba(87,103,107,.28)", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 }}><MapPin size={13} aria-hidden /> Drop a pin</button>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
           {detail.groups.map((g) => (
@@ -44,7 +45,7 @@ export function Pool({ detail }: { detail: TripDetail }) {
 export function StopCard({ point, detail, trailing }: { point: Point; detail: TripDetail; trailing?: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", border: "1px solid rgba(87,103,107,.2)", borderRadius: 9, background: "#F8FAFA", textAlign: "left" }}>
-      <span style={{ flex: "none", fontSize: 13 }}>{TYPE_ICON[point.type] ?? "📍"}</span>
+      <span style={{ flex: "none", display: "flex", color: "var(--slate)" }}><TypeIcon type={point.type} size={13} /></span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{point.name}</span>
         {point.groupId && (

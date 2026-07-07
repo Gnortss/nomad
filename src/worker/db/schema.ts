@@ -24,6 +24,7 @@ export const groups = sqliteTable("groups", {
   tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   color: text("color"),
+  dayId: text("day_id").references(() => days.id, { onDelete: "set null" }), // NULL = trip-wide
 }, (t) => ({ tripIdx: index("idx_groups_trip").on(t.tripId) }));
 
 export const points = sqliteTable("points", {
@@ -59,6 +60,7 @@ export const dayStops = sqliteTable("day_stops", {
   dayId: text("day_id").notNull().references(() => days.id, { onDelete: "cascade" }),
   pointId: text("point_id").notNull().references(() => points.id, { onDelete: "cascade" }),
   position: integer("position").notNull(),
+  inRoute: integer("in_route", { mode: "boolean" }).notNull().default(true),
 }, (t) => ({
   pk: primaryKey({ columns: [t.dayId, t.pointId] }),
   orderIdx: index("idx_day_stops_order").on(t.dayId, t.position),

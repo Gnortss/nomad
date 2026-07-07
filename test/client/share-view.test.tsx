@@ -5,8 +5,12 @@ vi.mock("react-router-dom", async (orig) => ({ ...(await orig<any>()), useParams
 vi.mock("@vis.gl/react-google-maps", () => ({ APIProvider: ({ children }: any) => <div>{children}</div>, Map: () => <div data-testid="map" />, useMap: () => null }));
 const payload = {
   trip: { name: "Iceland Ring Road", startDate: "2026-07-12" }, groups: [],
-  points: [{ id: "p0", name: "Reynisfjara", type: "viewpoint", lat: 1, lng: 1, links: [], bookingStatus: "idea", groupId: null }],
-  days: [{ id: "d0", position: 0, title: "Vík" }], stops: [{ dayId: "d0", pointId: "p0", position: 0 }],
+  points: [
+    { id: "p0", name: "Reynisfjara", type: "viewpoint", lat: 1, lng: 1, links: [], bookingStatus: "idea", groupId: null },
+    { id: "p1", name: "Hótel Katla", type: "hotel", lat: 2, lng: 2, links: [], bookingStatus: "booked", groupId: null },
+  ],
+  days: [{ id: "d0", position: 0, title: "Vík" }],
+  stops: [{ dayId: "d0", pointId: "p0", position: 0, inRoute: true }, { dayId: "d0", pointId: "p1", position: 1, inRoute: false }],
   routes: { d0: { polyline: "x", distanceM: 187000, durationS: 10500 } },
   stats: { totalDistanceM: 187000, totalDurationS: 10500, perDay: { d0: { distanceM: 187000, durationS: 10500 } } },
 };
@@ -22,5 +26,12 @@ describe("ShareView", () => {
     expect(screen.getByText("1. Reynisfjara")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /share trip/i })).toBeNull();     // no edit affordances
     expect(screen.queryByText(/Refresh route/i)).toBeNull();
+  });
+
+  it("lists attached stops under a divider, outside the numbered route", async () => {
+    render(<ShareView />);
+    await waitFor(() => expect(screen.getByText(/Also this day/i)).toBeTruthy());
+    expect(screen.getByText("Hótel Katla")).toBeTruthy();
+    expect(screen.queryByText(/2\. Hótel Katla/)).toBeNull(); // not numbered into the route
   });
 });

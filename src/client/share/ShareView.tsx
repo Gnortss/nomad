@@ -42,6 +42,17 @@ export function ShareView() {
                 <span style={{ fontSize: 11, color: "var(--slate)" }}>{STATUS_TAG[s.bookingStatus]}</span>
               </div>
             ))}
+            {d.attached.length > 0 && (
+              <>
+                <div className="ovp" style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".08em", color: "var(--slate)", borderTop: "1px solid rgba(87,103,107,.16)", marginTop: 4, padding: "6px 0 0" }}>ALSO THIS DAY</div>
+                {d.attached.map((s) => (
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", fontSize: 13, color: "var(--slate)" }}>
+                    <span style={{ flex: 1 }}>{s.name}</span>
+                    <span style={{ fontSize: 11 }}>{STATUS_TAG[s.bookingStatus]}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         ))}
       </div>

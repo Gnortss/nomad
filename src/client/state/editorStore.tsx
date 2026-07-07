@@ -1,39 +1,47 @@
 import { createContext, useContext, useMemo, useReducer } from "react";
 
-type State = { focusedDayId: string | null; selectedPointId: string | null; droppingPin: boolean };
+type State = { selectedDayId: string | null; expandedDayIds: ReadonlySet<string>; selectedPointId: string | null; droppingPin: boolean };
 type Action =
-  | { t: "focusDay"; id: string | null }
+  | { t: "selectDay"; id: string | null }
+  | { t: "toggleDayExpanded"; id: string }
+  | { t: "expandDay"; id: string }
   | { t: "selectPoint"; id: string | null }
-  | { t: "clearFocus" }
   | { t: "startDropPin" }
   | { t: "cancelDropPin" };
 
 function reducer(s: State, a: Action): State {
   switch (a.t) {
-    case "focusDay": return { ...s, focusedDayId: s.focusedDayId === a.id ? null : a.id };
+    case "selectDay": return s.selectedDayId === a.id ? s : { ...s, selectedDayId: a.id };
+    case "toggleDayExpanded": {
+      const next = new Set(s.expandedDayIds);
+      if (!next.delete(a.id)) next.add(a.id);
+      return { ...s, expandedDayIds: next };
+    }
+    case "expandDay": return s.expandedDayIds.has(a.id) ? s : { ...s, expandedDayIds: new Set(s.expandedDayIds).add(a.id) };
     case "selectPoint": return { ...s, selectedPointId: a.id };
-    case "clearFocus": return { ...s, focusedDayId: null };
     case "startDropPin": return { ...s, droppingPin: true };
     case "cancelDropPin": return { ...s, droppingPin: false };
   }
 }
 
 type Store = State & {
-  focusDay: (id: string | null) => void;
+  selectDay: (id: string | null) => void;
+  toggleDayExpanded: (id: string) => void;
+  expandDay: (id: string) => void;
   selectPoint: (id: string | null) => void;
-  clearFocus: () => void;
   startDropPin: () => void;
   cancelDropPin: () => void;
 };
 const Ctx = createContext<Store | null>(null);
 
 export function EditorStoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { focusedDayId: null, selectedPointId: null, droppingPin: false });
+  const [state, dispatch] = useReducer(reducer, { selectedDayId: null, expandedDayIds: new Set<string>(), selectedPointId: null, droppingPin: false });
   const value = useMemo<Store>(() => ({
     ...state,
-    focusDay: (id) => dispatch({ t: "focusDay", id }),
+    selectDay: (id) => dispatch({ t: "selectDay", id }),
+    toggleDayExpanded: (id) => dispatch({ t: "toggleDayExpanded", id }),
+    expandDay: (id) => dispatch({ t: "expandDay", id }),
     selectPoint: (id) => dispatch({ t: "selectPoint", id }),
-    clearFocus: () => dispatch({ t: "clearFocus" }),
     startDropPin: () => dispatch({ t: "startDropPin" }),
     cancelDropPin: () => dispatch({ t: "cancelDropPin" }),
   }), [state]);

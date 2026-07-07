@@ -6,20 +6,20 @@ The code is fully built and tested locally. The steps below require **your Cloud
 
 ```bash
 npx wrangler login                 # opens a browser once
-npx wrangler d1 create roadline-dev
-npx wrangler d1 create roadline-preview
-npx wrangler d1 create roadline-prod
+npx wrangler d1 create nomad-dev
+npx wrangler d1 create nomad-preview
+npx wrangler d1 create nomad-prod
 ```
 
 Paste each printed `database_id` into `wrangler.jsonc`:
-- `roadline-dev` → top-level `d1_databases[0].database_id`
-- `roadline-preview` → `env.preview.d1_databases[0].database_id`
-- `roadline-prod` → `env.production.d1_databases[0].database_id`
+- `nomad-dev` → top-level `d1_databases[0].database_id`
+- `nomad-preview` → `env.preview.d1_databases[0].database_id`
+- `nomad-prod` → `env.production.d1_databases[0].database_id`
 
 Apply migrations to the remote DBs:
 ```bash
-npx wrangler d1 migrations apply roadline-prod --env production --remote
-npx wrangler d1 migrations apply roadline-preview --env preview --remote
+npx wrangler d1 migrations apply nomad-prod --env production --remote
+npx wrangler d1 migrations apply nomad-preview --env preview --remote
 ```
 (Local dev/tests already work without these — they use an in-memory/local D1.)
 
@@ -58,7 +58,7 @@ Repository → Settings → Secrets and variables → Actions:
 - **Secret** `CLOUDFLARE_API_TOKEN` — a token with Workers Scripts:Edit + D1:Edit.
 - **Variables** `VITE_GOOGLE_MAPS_BROWSER_KEY`, `VITE_GOOGLE_MAPS_MAP_ID` — baked into the client bundle at build time.
 
-On push to `main`, `.github/workflows/deploy.yml` runs tests, builds, applies migrations to `roadline-prod`, and deploys `--env production`. Pull requests deploy `--env preview`.
+On push to `main`, `.github/workflows/deploy.yml` runs tests, builds, applies migrations to `nomad-prod`, and deploys `--env production`. Pull requests deploy `--env preview`.
 
 ## 5. Local dev
 

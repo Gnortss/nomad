@@ -1,8 +1,10 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
 import { daysWithStats } from "../lib/tripModel";
-import { formatDistance, formatDuration, endpointLabel, TYPE_ICON } from "../lib/format";
+import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
+import { TypeIcon } from "../components/TypeIcon";
 import { useEditorStore } from "../state/editorStore";
 import { useCreateDay } from "../lib/api";
 import type { TripDetail, Point } from "../lib/types";
@@ -21,7 +23,7 @@ function DayStopRow({ point: p, dayId, index, count, onSelect }: { point: Point;
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, boxShadow: showLine ? "0 -2px 0 var(--lupine)" : "none", display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: 7, background: "transparent", textAlign: "left", cursor: "grab" }}>
-      <span style={{ flex: "none", fontSize: 12 }}>{TYPE_ICON[p.type] ?? "📍"}</span>
+      <span style={{ flex: "none", display: "flex", color: "var(--slate)" }}><TypeIcon type={p.type} size={13} /></span>
       <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
       {endpointLabel(index, count) && <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", color: "var(--slate)", background: "rgba(87,103,107,.12)", padding: "2px 5px", borderRadius: 4 }}>{endpointLabel(index, count)}</span>}
       <span style={{ width: 9, height: 9, flex: "none", borderRadius: "50%", background: STATUS_DOT[p.bookingStatus], border: p.bookingStatus === "idea" ? "1.5px dashed #8797a0" : "none" }} />
@@ -29,8 +31,45 @@ function DayStopRow({ point: p, dayId, index, count, onSelect }: { point: Point;
   );
 }
 
+function AttachedStopRow({ point: p, onSelect }: { point: Point; onSelect: () => void }) {
+  return (
+    <div onClick={onSelect} style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 8px", borderRadius: 7, cursor: "pointer" }}>
+      <span style={{ flex: "none", display: "flex", color: "var(--slate)" }}><TypeIcon type={p.type} size={13} /></span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, color: "var(--slate)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
+      <span style={{ width: 9, height: 9, flex: "none", borderRadius: "50%", background: STATUS_DOT[p.bookingStatus], border: p.bookingStatus === "idea" ? "1.5px dashed #8797a0" : "none" }} />
+    </div>
+  );
+}
+
+// Attached stops clustered under this day's groups; stops without a day-scoped
+// group render first, plain.
+function AttachedSection({ detail, dayId, attached, onSelect }: { detail: TripDetail; dayId: string; attached: Point[]; onSelect: (id: string) => void }) {
+  const dayGroups = detail.groups.filter((g) => g.dayId === dayId);
+  const grouped = new Set(dayGroups.map((g) => g.id));
+  const plain = attached.filter((p) => !p.groupId || !grouped.has(p.groupId));
+  return (
+    <div style={{ margin: "0 0 6px 44px" }}>
+      <div className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", color: "var(--slate)", padding: "6px 8px 2px" }}>ALSO THIS DAY</div>
+      {plain.map((p) => <AttachedStopRow key={p.id} point={p} onSelect={() => onSelect(p.id)} />)}
+      {dayGroups.map((g) => {
+        const members = attached.filter((p) => p.groupId === g.id);
+        if (members.length === 0) return null;
+        return (
+          <div key={g.id}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 8px 1px" }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: g.color ?? "var(--basalt)" }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--slate)" }}>{g.name}</span>
+            </div>
+            {members.map((p) => <AttachedStopRow key={p.id} point={p} onSelect={() => onSelect(p.id)} />)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DayRail({ detail }: { detail: TripDetail }) {
-  const { focusedDayId, focusDay, selectPoint } = useEditorStore();
+  const { selectedDayId, selectDay, expandedDayIds, toggleDayExpanded, selectPoint } = useEditorStore();
   const createDay = useCreateDay(detail.trip.id);
   const days = daysWithStats(detail);
   return (
@@ -44,28 +83,38 @@ export function DayRail({ detail }: { detail: TripDetail }) {
         <div style={{ fontSize: 12, color: "var(--slate)", padding: "4px 6px 10px" }}>No days yet. Add a day, then drag stops onto it.</div>
       )}
       {days.map((d) => {
-        const focused = focusedDayId === d.id;
+        const selected = selectedDayId === d.id;
+        const expanded = expandedDayIds.has(d.id);
         const distText = d.distanceM != null ? `${formatDistance(d.distanceM)} · ${formatDuration(d.durationS!)}` : "No route yet";
         return (
           <DayDropZone key={d.id} dayId={d.id}>
-            <button onClick={() => focusDay(d.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "8px 10px", background: focused ? "#fff" : "transparent", border: `1px solid ${focused ? "rgba(91,68,201,.5)" : "transparent"}`, borderLeft: `3px solid ${focused ? "var(--lupine)" : "transparent"}`, borderRadius: 9, textAlign: "left", cursor: "pointer" }}>
-              <span className="ovp" style={{ width: 34, height: 30, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: d.warnLongDay ? "#fff" : "var(--basalt)", color: d.warnLongDay ? "var(--basalt)" : "#fff", border: `2px solid ${d.warnLongDay ? "var(--sulfur)" : "var(--basalt)"}`, borderRadius: 8, fontWeight: 800, fontSize: 15 }}>{d.position + 1}</span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.title ?? `Day ${d.position + 1}`}</span>
-                <span className="mono" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--slate)", marginTop: 2 }}>
-                  <span>{distText}</span>
-                  {d.warnLongDay && <span style={{ padding: "1px 6px", background: "rgba(227,154,12,.16)", color: "#8a5c00", borderRadius: 20, fontWeight: 600 }}>⚠ Long day</span>}
+            <div style={{ display: "flex", alignItems: "stretch", background: selected ? "#fff" : "transparent", border: `1px solid ${selected ? "rgba(91,68,201,.5)" : "transparent"}`, borderLeft: `3px solid ${selected ? "var(--lupine)" : "transparent"}`, borderRadius: 9 }}>
+              <button onClick={() => selectDay(selected ? null : d.id)} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 11, padding: "8px 10px", background: "transparent", border: "none", textAlign: "left", cursor: "pointer" }}>
+                <span className="ovp" style={{ width: 34, height: 30, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", background: d.warnLongDay ? "#fff" : "var(--basalt)", color: d.warnLongDay ? "var(--basalt)" : "#fff", border: `2px solid ${d.warnLongDay ? "var(--sulfur)" : "var(--basalt)"}`, borderRadius: 8, fontWeight: 800, fontSize: 15 }}>{d.position + 1}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.title ?? `Day ${d.position + 1}`}</span>
+                  <span className="mono" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--slate)", marginTop: 2 }}>
+                    <span>{distText}</span>
+                    {d.warnLongDay && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "1px 6px", background: "rgba(227,154,12,.16)", color: "#8a5c00", borderRadius: 20, fontWeight: 600 }}><TriangleAlert size={10} aria-hidden /> Long day</span>}
+                  </span>
                 </span>
-              </span>
-            </button>
-            {focused && (
-              <SortableContext items={d.stops.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-                <div style={{ margin: "2px 0 4px 44px", display: "flex", flexDirection: "column", gap: 1 }}>
-                  {d.stops.map((p, i) => (
-                    <DayStopRow key={p.id} point={p} dayId={d.id} index={i} count={d.stops.length} onSelect={() => selectPoint(p.id)} />
-                  ))}
-                </div>
-              </SortableContext>
+              </button>
+              <button onClick={() => toggleDayExpanded(d.id)} aria-label="Toggle stops" aria-expanded={expanded}
+                style={{ flex: "none", width: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: "var(--slate)", cursor: "pointer" }}>{expanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}</button>
+            </div>
+            {expanded && (
+              <>
+                <SortableContext items={d.stops.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                  <div style={{ margin: "2px 0 4px 44px", display: "flex", flexDirection: "column", gap: 1 }}>
+                    {d.stops.map((p, i) => (
+                      <DayStopRow key={p.id} point={p} dayId={d.id} index={i} count={d.stops.length} onSelect={() => selectPoint(p.id)} />
+                    ))}
+                  </div>
+                </SortableContext>
+                {d.attached.length > 0 && (
+                  <AttachedSection detail={detail} dayId={d.id} attached={d.attached} onSelect={selectPoint} />
+                )}
+              </>
             )}
           </DayDropZone>
         );

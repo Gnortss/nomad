@@ -26,7 +26,8 @@ shareRouter.delete("/api/trips/:id/share", async (c) => {
   return c.json({ shareToken: token });
 });
 
-shareRouter.get("/s/:token", async (c) => {
+// JSON payload behind the public share page; /s/:token itself is a client route.
+shareRouter.get("/api/share/:token", async (c) => {
   const db = getDb(c.env);
   const trip = (await db.select().from(trips).where(eq(trips.shareToken, c.req.param("token"))).limit(1))[0];
   if (!trip) return c.json({ error: "not found" }, 404);

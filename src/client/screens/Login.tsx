@@ -4,7 +4,7 @@ export function Login() {
   return (
     <div style={{ height: "100%", display: "grid", placeItems: "center" }}>
       <div style={{ maxWidth: 420, padding: 24 }}>
-        <div className="ovp" style={{ fontWeight: 800, letterSpacing: ".06em", fontSize: 20 }}>▮ ROADLINE</div>
+        <div className="ovp" style={{ fontWeight: 800, letterSpacing: ".06em", fontSize: 20 }}>▮ NOMAD</div>
         <h1 style={{ fontSize: 28, marginTop: 16 }}>Plan the drive. Not just the destination.</h1>
         <button
           onClick={signInWithGoogle}

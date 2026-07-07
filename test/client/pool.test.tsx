@@ -11,13 +11,13 @@ import { Pool } from "../../src/client/editor/Pool";
 
 const detail: TripDetail = {
   trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
-  groups: [{ id: "g1", tripId: "t1", name: "backup options", color: "#3E7CB1" }],
+  groups: [{ id: "g1", tripId: "t1", name: "backup options", color: "#3E7CB1", dayId: null }],
   points: [
     { id: "p0", tripId: "t1", name: "Dettifoss", lat: 1, lng: 1, type: "viewpoint", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: "g1" },
     { id: "p1", tripId: "t1", name: "Assigned", lat: 2, lng: 2, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },
   ],
   days: [{ id: "d0", tripId: "t1", position: 0, title: "A" }],
-  dayStops: [{ dayId: "d0", pointId: "p1", position: 0 }],  // p1 assigned, p0 pooled
+  dayStops: [{ dayId: "d0", pointId: "p1", position: 0, inRoute: true }],  // p1 assigned, p0 pooled
   routes: [], stats: { totalDistanceM: 0, totalDurationS: 0, totalFuel: null, perDay: {} },
 };
 

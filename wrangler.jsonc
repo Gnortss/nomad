@@ -2,8 +2,11 @@
   "name": "roadline",
   "main": "./src/worker/index.ts",
   "compatibility_date": "2025-01-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": "./dist/client", "not_found_handling": "single-page-application" },
+  // assets_navigation_prefers_asset_serving: page loads/refreshes on client routes get
+  // the SPA index.html instead of 404ing in the worker; run_worker_first keeps /api/*
+  // (incl. OAuth callbacks and all JSON endpoints) on the worker.
+  "compatibility_flags": ["nodejs_compat", "assets_navigation_prefers_asset_serving"],
+  "assets": { "directory": "./dist/client", "not_found_handling": "single-page-application", "run_worker_first": ["/api/*"] },
   "d1_databases": [
     { "binding": "DB", "database_name": "nomad-dev", "database_id": "598e9e91-2980-4d72-abe0-5ebbff2d871d", "migrations_dir": "migrations" }
   ],

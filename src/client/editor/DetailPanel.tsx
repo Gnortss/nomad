@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { usePatchPoint, useDeletePoint } from "../lib/api";
+import { Link as LinkIcon, X } from "lucide-react";
+import { usePatchPoint, useDeletePoint, useToggleStopRoute, useCreateGroup } from "../lib/api";
 import { useEditorStore } from "../state/editorStore";
-import { TYPE_ICON } from "../lib/format";
-import { groupColor } from "../lib/tripModel";
+import { TypeIcon } from "../components/TypeIcon";
 import { DayMenu } from "./DayMenu";
 import type { TripDetail, Point } from "../lib/types";
 
@@ -14,6 +14,7 @@ const STATUSES: Array<{ key: string; label: string; color: string }> = [
 ];
 const SECTION_HEAD: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", color: "var(--slate)", marginBottom: 7 };
 const FIELD_BORDER = "1px solid rgba(87,103,107,.22)";
+const GROUP_COLORS = ["#C64A3B", "#E39A0C", "#4C7A34", "#2C6E8A", "#5B44C9", "#57676B"];
 
 export function DetailPanel({ detail }: { detail: TripDetail }) {
   const { selectedPointId } = useEditorStore();
@@ -27,6 +28,9 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
   const { selectPoint } = useEditorStore();
   const patch = usePatchPoint(detail.trip.id);
   const del = useDeletePoint(detail.trip.id);
+  const toggleRoute = useToggleStopRoute(detail.trip.id);
+  const createGroup = useCreateGroup(detail.trip.id);
+  const stopRow = detail.dayStops.find((s) => s.pointId === p.id);
   // Local drafts: every PATCH invalidates the trip query, and the refetch would
   // clobber controlled inputs mid-edit without them.
   const [name, setName] = useState(p.name);
@@ -35,6 +39,10 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
   const [addingLink, setAddingLink] = useState(false);
   const [linkLabel, setLinkLabel] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [addingGroup, setAddingGroup] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupHue, setGroupHue] = useState(GROUP_COLORS[0]);
+  const [groupScope, setGroupScope] = useState(""); // "" = trip-wide, else dayId
 
   function commitName() {
     const v = name.trim();
@@ -58,6 +66,13 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
   function removeLink(i: number) {
     patch.mutate({ id: p.id, body: { links: p.links.filter((_, idx) => idx !== i) } });
   }
+  async function createNewGroup() {
+    const name = groupName.trim();
+    if (!name) return;
+    const g = await createGroup.mutateAsync({ name, color: groupHue, dayId: groupScope || null });
+    patch.mutate({ id: p.id, body: { groupId: g.id } });
+    setAddingGroup(false); setGroupName(""); setGroupScope("");
+  }
   async function onDelete() {
     if (!window.confirm(`Delete "${p.name}"?`)) return;
     await del.mutateAsync(p.id);
@@ -72,14 +87,23 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
             aria-label="Stop name"
             style={{ width: "100%", margin: 0, padding: 0, fontSize: 18, fontWeight: 700, fontFamily: "inherit", color: "inherit", background: "transparent", border: "none", borderBottom: "1px dashed rgba(87,103,107,.35)", outline: "none" }} />
-          <div style={{ fontSize: 12.5, color: "var(--slate)", marginTop: 3 }}>{TYPE_ICON[p.type] ?? ""} {TYPE_LABEL[p.type] ?? p.type}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--slate)", marginTop: 3 }}><TypeIcon type={p.type} size={13} /> {TYPE_LABEL[p.type] ?? p.type}</div>
         </div>
-        <button onClick={() => selectPoint(null)} aria-label="Close details" style={{ width: 30, height: 30, flex: "none", border: "none", background: "rgba(87,103,107,.12)", borderRadius: 7, fontSize: 16, cursor: "pointer" }}>✕</button>
+        <button onClick={() => selectPoint(null)} aria-label="Close details" style={{ width: 30, height: 30, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "rgba(87,103,107,.12)", borderRadius: 7, cursor: "pointer" }}><X size={15} aria-hidden /></button>
       </div>
       <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
           <div className="ovp" style={SECTION_HEAD}>DAY</div>
-          <DayMenu detail={detail} pointId={p.id} />
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <DayMenu detail={detail} pointId={p.id} />
+            {stopRow && (
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+                <input type="checkbox" checked={stopRow.inRoute}
+                  onChange={(e) => toggleRoute.mutate({ dayId: stopRow.dayId, pointId: p.id, inRoute: e.target.checked })} />
+                On route
+              </label>
+            )}
+          </div>
         </div>
         <div>
           <div className="ovp" style={SECTION_HEAD}>TYPE</div>
@@ -89,7 +113,7 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
               return (
                 <button key={t} onClick={() => !active && patch.mutate({ id: p.id, body: { type: t } })}
                   style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 20, border: `1px solid ${active ? "var(--lupine)" : "rgba(87,103,107,.28)"}`, background: active ? "var(--lupine)" : "#fff", color: active ? "#fff" : "var(--basalt)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
-                  <span>{TYPE_ICON[t]}</span>{TYPE_LABEL[t]}
+                  <TypeIcon type={t} size={12} />{TYPE_LABEL[t]}
                 </button>
               );
             })}
@@ -97,12 +121,50 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
         </div>
         <div>
           <div className="ovp" style={SECTION_HEAD}>GROUP</div>
-          {p.groupId ? (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 11px", borderRadius: 7, border: "1px solid rgba(87,103,107,.2)" }}>
-              <span style={{ width: 11, height: 11, borderRadius: 3, background: groupColor(detail, p.groupId) }} />
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{detail.groups.find((g) => g.id === p.groupId)?.name}</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            <button onClick={() => p.groupId && patch.mutate({ id: p.id, body: { groupId: null } })}
+              style={{ padding: "4px 9px", borderRadius: 20, border: `1px solid ${!p.groupId ? "var(--lupine)" : "rgba(87,103,107,.28)"}`, background: !p.groupId ? "var(--lupine)" : "#fff", color: !p.groupId ? "#fff" : "var(--basalt)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+              No group
+            </button>
+            {detail.groups.map((g) => {
+              const active = p.groupId === g.id;
+              const day = g.dayId ? detail.days.find((d) => d.id === g.dayId) : null;
+              return (
+                <button key={g.id} onClick={() => !active && patch.mutate({ id: p.id, body: { groupId: g.id } })}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 20, border: `1px solid ${active ? "var(--lupine)" : "rgba(87,103,107,.28)"}`, background: active ? "var(--lupine)" : "#fff", color: active ? "#fff" : "var(--basalt)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 2, background: g.color ?? "var(--basalt)" }} />
+                  {g.name}{day ? ` · Day ${day.position + 1}` : ""}
+                </button>
+              );
+            })}
+            <button onClick={() => setAddingGroup(true)}
+              style={{ padding: "4px 9px", borderRadius: 20, border: "1px dashed rgba(87,103,107,.35)", background: "transparent", color: "var(--slate)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+              + New group
+            </button>
+          </div>
+          {addingGroup && (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 7 }}>
+              <input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Group name" aria-label="Group name"
+                style={{ height: 30, padding: "0 10px", fontSize: 12.5, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }} />
+              <div style={{ display: "flex", gap: 6 }}>
+                {GROUP_COLORS.map((c) => (
+                  <button key={c} aria-label={`Color ${c}`} onClick={() => setGroupHue(c)}
+                    style={{ width: 22, height: 22, borderRadius: 6, background: c, border: groupHue === c ? "2px solid var(--basalt)" : "2px solid transparent", cursor: "pointer" }} />
+                ))}
+              </div>
+              <select value={groupScope} onChange={(e) => setGroupScope(e.target.value)} aria-label="Group scope"
+                style={{ height: 30, padding: "0 8px", fontSize: 12.5, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }}>
+                <option value="">Trip-wide</option>
+                {[...detail.days].sort((a, b) => a.position - b.position).map((d) => (
+                  <option key={d.id} value={d.id}>Day {d.position + 1}{d.title ? ` — ${d.title}` : ""}</option>
+                ))}
+              </select>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={createNewGroup} style={{ height: 28, padding: "0 12px", background: "var(--basalt)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Create</button>
+                <button onClick={() => { setAddingGroup(false); setGroupName(""); setGroupScope(""); }} style={{ height: 28, padding: "0 12px", background: "rgba(87,103,107,.12)", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              </div>
             </div>
-          ) : <span style={{ fontSize: 13, color: "var(--slate)" }}>No group</span>}
+          )}
         </div>
         <div>
           <div className="ovp" style={SECTION_HEAD}>BOOKING</div>
@@ -143,9 +205,9 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
             {p.links.map((lk, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 11px", background: "#fff", border: FIELD_BORDER, borderRadius: 7 }}>
                 <a href={lk.url} target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-                  🔗 <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lk.label}</span>
+                  <LinkIcon size={13} aria-hidden style={{ flex: "none", color: "var(--slate)" }} /> <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lk.label}</span>
                 </a>
-                <button onClick={() => removeLink(i)} aria-label={`Remove link ${lk.label}`} style={{ flex: "none", width: 20, height: 20, border: "none", background: "rgba(87,103,107,.12)", borderRadius: 5, fontSize: 11, cursor: "pointer" }}>✕</button>
+                <button onClick={() => removeLink(i)} aria-label={`Remove link ${lk.label}`} style={{ flex: "none", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "rgba(87,103,107,.12)", borderRadius: 5, cursor: "pointer" }}><X size={11} aria-hidden /></button>
               </div>
             ))}
             {addingLink ? (

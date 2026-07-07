@@ -13,7 +13,6 @@ export function appWith(userId: string | null, ...routers: AnyRouter[]) {
     await next();
   };
   app.use("/api/*", setUser);
-  app.use("/s/*", setUser);
   for (const r of routers) app.route("/", r);
   return app;
 }

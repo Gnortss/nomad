@@ -22,10 +22,9 @@ export function formatCost(estCost: number | null, costBasis: string | null, cur
   return amount;
 }
 
-export const TYPE_ICON: Record<string, string> = { camp: "⛺", wildcamp: "🏕", hostel: "🛏", hotel: "🏨", poi: "📍", fuel: "⛽", food: "🍽", viewpoint: "🌄", activity: "🥾", other: "⬡" };
-
-export function endpointLabel(index: number, count: number): "START" | "END" | "" {
-  if (index === 0) return "START";
+// No START label: a day's drive begins at the previous day's last stop
+// (see dayWaypoints), so the day's own first stop isn't where the route starts.
+export function endpointLabel(index: number, count: number): "END" | "" {
   if (index === count - 1) return "END";
   return "";
 }

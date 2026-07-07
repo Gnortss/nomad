@@ -18,10 +18,10 @@ describe("formatters", () => {
     expect(formatCost(0, "total", "EUR")).toBe("Free");
     expect(formatCost(null, null, "EUR")).toBe("—");
   });
-  it("endpoint labels from order", () => {
-    expect(endpointLabel(0, 3)).toBe("START");
+  it("labels only the last stop END — a day's drive starts at the previous day's overnight", () => {
+    expect(endpointLabel(0, 3)).toBe("");
     expect(endpointLabel(2, 3)).toBe("END");
     expect(endpointLabel(1, 3)).toBe("");
-    expect(endpointLabel(0, 1)).toBe("START");
+    expect(endpointLabel(0, 1)).toBe("END"); // a lone stop is where the day's drive ends
   });
 });

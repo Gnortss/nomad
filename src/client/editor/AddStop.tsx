@@ -18,19 +18,31 @@ type PlacesLib = {
 
 type Suggestion = { label: string; placeId: string; toPlace: () => PlaceLike };
 
+// Fixed-position (anchored to the input) so the panel isn't clipped by the pool's
+// overflow-y:auto scroll container; flips above the input and scrolls internally
+// when the viewport bottom is too close (the pool sits at the bottom of the screen).
+function panelStyle(r: DOMRect): React.CSSProperties {
+  const below = window.innerHeight - r.bottom - 12;
+  const place = below >= 180 ? { top: r.bottom + 4, maxHeight: below } : { bottom: window.innerHeight - r.top + 4, maxHeight: r.top - 12 };
+  return { position: "fixed", left: r.left, width: r.width, zIndex: 30, overflowY: "auto", background: "#fff", border: "1px solid rgba(87,103,107,.2)", borderRadius: 7, boxShadow: "0 8px 28px rgba(30,42,44,.16)", ...place };
+}
+
 export function AddStop({ tripId }: { tripId: string }) {
   const places = useMapsLibrary("places") as unknown as PlacesLib | null;
   const create = useCreatePoint(tripId);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const tokenRef = useRef<unknown>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   async function onChange(input: string) {
     setQ(input);
     if (!places || !input) { setSuggestions([]); return; }
     if (!tokenRef.current) tokenRef.current = new places.AutocompleteSessionToken(); // one session bundles the keystrokes
     const { suggestions: raw } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({ input, sessionToken: tokenRef.current });
+    if (inputRef.current) setAnchor(inputRef.current.getBoundingClientRect());
     setSuggestions(
       raw
         .filter((s): s is { placePrediction: Prediction } => !!s.placePrediction)
@@ -57,10 +69,10 @@ export function AddStop({ tripId }: { tripId: string }) {
   }
   return (
     <div style={{ position: "relative", flex: 1 }}>
-      <input role="textbox" autoFocus value={q} onChange={(e) => onChange(e.target.value)} placeholder="Search a place"
+      <input ref={inputRef} role="textbox" autoFocus value={q} onChange={(e) => onChange(e.target.value)} placeholder="Search a place"
         style={{ width: "100%", height: 32, borderRadius: 7, border: "1px solid rgba(87,103,107,.28)", padding: "0 10px", fontSize: 12.5 }} />
-      {suggestions.length > 0 && (
-        <div style={{ position: "absolute", left: 0, right: 0, top: 36, zIndex: 10, background: "#fff", border: "1px solid rgba(87,103,107,.2)", borderRadius: 7, boxShadow: "0 8px 28px rgba(30,42,44,.16)", overflow: "hidden" }}>
+      {suggestions.length > 0 && anchor && (
+        <div style={panelStyle(anchor)}>
           {suggestions.map((s) => (
             <button key={s.placeId} onClick={() => pick(s)} style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 11px", border: "none", background: "#fff", fontSize: 12.5, cursor: "pointer" }}>{s.label}</button>
           ))}
