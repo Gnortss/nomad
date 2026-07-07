@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { pooledPoints, groupColor } from "../lib/tripModel";
+import { TYPE_ICON } from "../lib/format";
 import { useEditorStore } from "../state/editorStore";
 import { AddStop } from "./AddStop";
 import { DayMenu } from "./DayMenu";
@@ -43,6 +44,7 @@ export function Pool({ detail }: { detail: TripDetail }) {
 export function StopCard({ point, detail, trailing }: { point: Point; detail: TripDetail; trailing?: React.ReactNode }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 9px", border: "1px solid rgba(87,103,107,.2)", borderRadius: 9, background: "#F8FAFA", textAlign: "left" }}>
+      <span style={{ flex: "none", fontSize: 13 }}>{TYPE_ICON[point.type] ?? "📍"}</span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{point.name}</span>
         {point.groupId && (

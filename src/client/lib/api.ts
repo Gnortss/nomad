@@ -59,6 +59,10 @@ export function usePatchPoint(tripId: string) {
   const invalidate = useInvalidateTrip(tripId);
   return useMutation({ mutationFn: (v: { id: string; body: object }) => patchPoint(v.id, v.body), onSuccess: invalidate });
 }
+export function useDeletePoint(tripId: string) {
+  const invalidate = useInvalidateTrip(tripId);
+  return useMutation({ mutationFn: (id: string) => deletePoint(id), onSuccess: invalidate });
+}
 export function useCreatePoint(tripId: string) {
   const invalidate = useInvalidateTrip(tripId);
   return useMutation({ mutationFn: (body: object) => createPoint(tripId, body), onSuccess: invalidate });

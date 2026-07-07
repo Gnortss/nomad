@@ -22,6 +22,8 @@ export function formatCost(estCost: number | null, costBasis: string | null, cur
   return amount;
 }
 
+export const TYPE_ICON: Record<string, string> = { camp: "⛺", wildcamp: "🏕", hostel: "🛏", hotel: "🏨", poi: "📍", fuel: "⛽", food: "🍽", viewpoint: "🌄", activity: "🥾", other: "⬡" };
+
 export function endpointLabel(index: number, count: number): "START" | "END" | "" {
   if (index === 0) return "START";
   if (index === count - 1) return "END";

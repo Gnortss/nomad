@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { daysWithStats } from "../lib/tripModel";
-import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
+import { formatDistance, formatDuration, endpointLabel, TYPE_ICON } from "../lib/format";
 import { useEditorStore } from "../state/editorStore";
 import { useCreateDay } from "../lib/api";
 import type { TripDetail, Point } from "../lib/types";
@@ -21,6 +21,7 @@ function DayStopRow({ point: p, dayId, index, count, onSelect }: { point: Point;
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, boxShadow: showLine ? "0 -2px 0 var(--lupine)" : "none", display: "flex", alignItems: "center", gap: 9, padding: "6px 8px", borderRadius: 7, background: "transparent", textAlign: "left", cursor: "grab" }}>
+      <span style={{ flex: "none", fontSize: 12 }}>{TYPE_ICON[p.type] ?? "📍"}</span>
       <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</span>
       {endpointLabel(index, count) && <span className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", color: "var(--slate)", background: "rgba(87,103,107,.12)", padding: "2px 5px", borderRadius: 4 }}>{endpointLabel(index, count)}</span>}
       <span style={{ width: 9, height: 9, flex: "none", borderRadius: "50%", background: STATUS_DOT[p.bookingStatus], border: p.bookingStatus === "idea" ? "1.5px dashed #8797a0" : "none" }} />
