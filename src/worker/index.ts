@@ -4,6 +4,7 @@ import { tripsRouter } from "./routes/trips";
 import { pointsRouter } from "./routes/points";
 import { daysRouter } from "./routes/days";
 import { makeStopsRouter } from "./routes/stops";
+import { tripDetailRouter } from "./routes/trip-detail";
 
 export type Env = { DB: D1Database };
 type Variables = { user: { id: string } | null };
@@ -27,5 +28,6 @@ app.route("/", tripsRouter);
 app.route("/", pointsRouter);
 app.route("/", daysRouter);
 app.route("/", makeStopsRouter());
+app.route("/", tripDetailRouter);
 
 export default app;
