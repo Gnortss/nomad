@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { pooledPoints, groupColor } from "../lib/tripModel";
 import { useEditorStore } from "../state/editorStore";
+import { AddStop } from "./AddStop";
 import type { TripDetail, Point } from "../lib/types";
 
 export function Pool({ detail }: { detail: TripDetail }) {
@@ -15,7 +16,7 @@ export function Pool({ detail }: { detail: TripDetail }) {
       <div style={{ padding: "12px 16px 8px" }}>
         <div className="ovp" style={{ fontWeight: 700, fontSize: 12, letterSpacing: ".14em", color: "var(--slate)" }}>UNASSIGNED</div>
         <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
-          <button style={{ flex: 1, height: 32, background: "#fff", border: "1px solid rgba(87,103,107,.28)", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>🔍 Search a place</button>
+          <AddStop tripId={detail.trip.id} />
           <button style={{ height: 32, padding: "0 12px", background: "#fff", border: "1px solid rgba(87,103,107,.28)", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>📍 Drop a pin</button>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
