@@ -24,6 +24,7 @@ export default defineWorkersConfig(async () => {
               BETTER_AUTH_URL: "http://localhost",
               GOOGLE_CLIENT_ID: "test-client-id",
               GOOGLE_CLIENT_SECRET: "test-client-secret",
+              GOOGLE_ROUTES_KEY: "test-routes-key",
             },
           },
         },

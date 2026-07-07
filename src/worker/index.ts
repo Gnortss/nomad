@@ -3,6 +3,7 @@ import { createAuth, type AppEnv } from "./auth";
 import { tripsRouter } from "./routes/trips";
 import { pointsRouter } from "./routes/points";
 import { daysRouter } from "./routes/days";
+import { makeStopsRouter } from "./routes/stops";
 
 export type Env = { DB: D1Database };
 type Variables = { user: { id: string } | null };
@@ -25,5 +26,6 @@ app.use("/api/*", async (c, next) => {
 app.route("/", tripsRouter);
 app.route("/", pointsRouter);
 app.route("/", daysRouter);
+app.route("/", makeStopsRouter());
 
 export default app;
