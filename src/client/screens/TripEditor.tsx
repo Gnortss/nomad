@@ -10,6 +10,7 @@ import { Pool } from "../editor/Pool";
 import { DetailPanel } from "../editor/DetailPanel";
 import { TopBar } from "../editor/TopBar";
 import { ShareDialog } from "../editor/ShareDialog";
+import { EmptyTrip } from "../editor/states";
 import { computeDrop } from "../editor/assign";
 import { stopsForDay } from "../lib/tripModel";
 import { formatDistance, formatDuration } from "../lib/format";
@@ -38,7 +39,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
       <DndContext onDragEnd={onDragEnd}>
         <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
           <aside style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#F4F6F6", borderRight: "1px solid rgba(87,103,107,.18)" }}>
-            <DayRail detail={detail} />
+            {detail.points.length === 0 ? <EmptyTrip /> : <DayRail detail={detail} />}
             <Pool detail={detail} />
           </aside>
           <main style={{ flex: 1, position: "relative", minWidth: 0 }}>

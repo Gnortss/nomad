@@ -7,7 +7,7 @@ vi.mock("@vis.gl/react-google-maps", () => ({ APIProvider: ({ children }: any) =
 vi.mock("../../src/client/lib/api", () => ({
   useTrip: () => ({ data: {
     trip: { id: "t1", name: "Iceland", currency: "EUR", fuelLPer100km: null, fuelPricePerL: null },
-    groups: [], points: [], days: [], dayStops: [], routes: [],
+    groups: [], points: [{ id: "p0", tripId: "t1", name: "P", lat: 1, lng: 1, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null }], days: [], dayStops: [], routes: [],
     stats: { totalDistanceM: 214000, totalDurationS: 11400, totalFuel: null, perDay: {} },
   }, isPending: false }),
   usePutStops: () => ({ mutate: vi.fn() }),
