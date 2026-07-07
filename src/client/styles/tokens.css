@@ -1,0 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  --basalt: #1e2a2c;
+  --glacier: #ecf0f0;
+  --slate: #57676b;
+  --lupine: #5b44c9;
+  --sulfur: #e39a0c;
+  --moss: #2f7a55;
+  --font-body: "Public Sans", system-ui, sans-serif;
+  --font-display: "Overpass", sans-serif;
+  --font-mono: "Overpass Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+body {
+  font-family: var(--font-body);
+  color: var(--basalt);
+  background: var(--glacier);
+  -webkit-font-smoothing: antialiased;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.ovp {
+  font-family: var(--font-display);
+}

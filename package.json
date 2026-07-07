@@ -10,13 +10,14 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.28",
     "nanoid": "^5.1.16"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.43.0",
+    "@cloudflare/vite-plugin": "^1.34.0",
     "@cloudflare/vitest-pool-workers": "^0.8.71",
     "@cloudflare/workers-types": "^4.20260702.1",
     "@types/react": "^19.2.17",
