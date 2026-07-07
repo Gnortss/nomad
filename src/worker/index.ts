@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { createAuth, type AppEnv } from "./auth";
+import { tripsRouter } from "./routes/trips";
 
 export type Env = { DB: D1Database };
 type Variables = { user: { id: string } | null };
@@ -19,10 +20,6 @@ app.use("/api/*", async (c, next) => {
   await next();
 });
 
-app.get("/api/trips", (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ error: "unauthorized" }, 401);
-  return c.json({ trips: [] });
-});
+app.route("/", tripsRouter);
 
 export default app;
