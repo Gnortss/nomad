@@ -1,8 +1,8 @@
-import { BedSingle, Footprints, Fuel, Hexagon, Hotel, MapPin, Mountain, Tent, TentTree, Utensils, type LucideIcon } from "lucide-react";
+import { BedSingle, Footprints, Fuel, Hexagon, Hotel, MapPin, Mountain, PlugZap, Tent, TentTree, Utensils, type LucideIcon } from "lucide-react";
 
 const TYPE_ICONS: Record<string, LucideIcon> = {
   camp: Tent, wildcamp: TentTree, hostel: BedSingle, hotel: Hotel, poi: MapPin,
-  fuel: Fuel, food: Utensils, viewpoint: Mountain, activity: Footprints, other: Hexagon,
+  fuel: Fuel, charging: PlugZap, food: Utensils, viewpoint: Mountain, activity: Footprints, other: Hexagon,
 };
 
 export function TypeIcon({ type, size = 13, color = "currentColor" }: { type: string; size?: number; color?: string }) {

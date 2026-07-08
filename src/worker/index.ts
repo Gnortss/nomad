@@ -1,13 +1,14 @@
 import { Hono } from "hono";
 import { createAuth, type AppEnv } from "./auth";
-import { tripsRouter } from "./routes/trips";
+import { makeTripsRouter } from "./routes/trips";
 import { pointsRouter, makePlaceInfoRouter } from "./routes/points";
 import { daysRouter } from "./routes/days";
 import { makeStopsRouter } from "./routes/stops";
 import { tripDetailRouter } from "./routes/trip-detail";
 import { groupsRouter } from "./routes/groups";
 import { shareRouter } from "./routes/share";
-import { aiChatRouter } from "./routes/ai-chat";
+import { makeAiNewTripRouter } from "./routes/ai-new-trip";
+import { makeAiTripChatRouter } from "./routes/ai-trip-chat";
 
 export type Env = { DB: D1Database };
 type Variables = { user: { id: string } | null };
@@ -27,7 +28,7 @@ app.use("/api/*", async (c, next) => {
   await next();
 });
 
-app.route("/", tripsRouter);
+app.route("/", makeTripsRouter());
 app.route("/", pointsRouter);
 app.route("/", makePlaceInfoRouter());
 app.route("/", daysRouter);
@@ -35,6 +36,7 @@ app.route("/", makeStopsRouter());
 app.route("/", tripDetailRouter);
 app.route("/", groupsRouter);
 app.route("/", shareRouter);
-app.route("/", aiChatRouter);
+app.route("/", makeAiNewTripRouter());
+app.route("/", makeAiTripChatRouter());
 
 export default app;

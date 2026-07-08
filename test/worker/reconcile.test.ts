@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { describe, it, expect, beforeEach } from "vitest";
 import { getDb, trips, days, points, dayStops, dayRoutes } from "../../src/worker/db/schema";
-import { reconcileDayRoutes } from "../../src/worker/lib/reconcile";
+import { reconcileDayRoutes, effectiveModifiers, routeMode } from "../../src/worker/lib/reconcile";
 import { eq } from "drizzle-orm";
 
 const db = () => getDb(env);
@@ -86,5 +86,44 @@ describe("reconcileDayRoutes", () => {
     const status = await reconcileDayRoutes(db(), "t1", compute);
     expect(status.d0).toBe("ok");
     expect(status.d1).toBe("failed");
+  });
+
+  it("passes effective modifiers to compute (day override beats trip default)", async () => {
+    await db().update(trips).set({ avoidTolls: true }).where(eq(trips.id, "t1"));
+    await db().update(days).set({ avoidTolls: false, allowFerries: false }).where(eq(days.id, "d1"));
+    const seen: Array<{ avoidTolls?: boolean; avoidFerries?: boolean } | undefined> = [];
+    const compute = async (wp: Array<{ lat: number; lng: number }>, m?: { avoidTolls?: boolean; avoidFerries?: boolean }) => {
+      seen.push(wp[0].lat === 2 ? m : undefined); // record day1's modifiers
+      if (wp[0].lat === 1) expect(m).toEqual({ avoidTolls: true, avoidFerries: false }); // d0 inherits trip
+      return { polyline: "x", distanceM: 1, durationS: 1 };
+    };
+    await reconcileDayRoutes(db(), "t1", compute);
+    expect(seen.find(Boolean)).toEqual({ avoidTolls: false, avoidFerries: true }); // d1 overrides both
+  });
+
+  it("invalidates the cached route when constraints flip, and only then", async () => {
+    let calls = 0;
+    const compute = async () => { calls++; return { polyline: "x", distanceM: 1, durationS: 1 }; };
+    await reconcileDayRoutes(db(), "t1", compute);
+    const baseline = calls;
+    await reconcileDayRoutes(db(), "t1", compute);
+    expect(calls).toBe(baseline); // defaults: cache holds
+    await db().update(trips).set({ avoidTolls: true }).where(eq(trips.id, "t1"));
+    await reconcileDayRoutes(db(), "t1", compute);
+    expect(calls).toBe(baseline * 2); // every day recomputed under the new mode
+  });
+});
+
+describe("effectiveModifiers / routeMode", () => {
+  it("defaults hash byte-identical to the historical plain DRIVE", () => {
+    expect(routeMode(effectiveModifiers({ avoidTolls: false, allowFerries: true }, { avoidTolls: null, allowFerries: null }))).toBe("DRIVE");
+  });
+
+  it("appends tokens only for non-default modifiers and maps allow→avoid ferries", () => {
+    expect(routeMode({ avoidTolls: true, avoidFerries: false })).toBe("DRIVE|tolls");
+    expect(routeMode({ avoidTolls: false, avoidFerries: true })).toBe("DRIVE|noferry");
+    expect(routeMode({ avoidTolls: true, avoidFerries: true })).toBe("DRIVE|tolls|noferry");
+    expect(effectiveModifiers({ avoidTolls: false, allowFerries: false }, { avoidTolls: null, allowFerries: null }))
+      .toEqual({ avoidTolls: false, avoidFerries: true });
   });
 });

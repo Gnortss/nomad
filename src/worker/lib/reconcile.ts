@@ -1,10 +1,29 @@
 import { and, asc, eq } from "drizzle-orm";
-import { getDb, days, dayStops, points, dayRoutes } from "../db/schema";
+import { getDb, trips, days, dayStops, points, dayRoutes } from "../db/schema";
 import { dayWaypoints, waypointsHash, type Coord } from "./waypoints";
-import type { RouteComputer } from "./routes-google";
+import type { RouteComputer, RouteModifiers } from "./routes-google";
 
 type Db = ReturnType<typeof getDb>;
 const THIRTY_DAYS = 30 * 24 * 3600 * 1000;
+
+// Day override wins over the trip default; UI semantics are *allow* ferries,
+// the Routes API wants *avoid*.
+export function effectiveModifiers(
+  trip: { avoidTolls: boolean; allowFerries: boolean },
+  day: { avoidTolls: boolean | null; allowFerries: boolean | null },
+): Required<RouteModifiers> {
+  return {
+    avoidTolls: day.avoidTolls ?? trip.avoidTolls,
+    avoidFerries: !(day.allowFerries ?? trip.allowFerries),
+  };
+}
+
+// Cache-key mode string. The default profile must stay byte-identical to the
+// historical plain "DRIVE" so existing cached polylines remain valid; tokens
+// are appended only for non-default modifiers.
+export function routeMode(m: Required<RouteModifiers>): string {
+  return "DRIVE" + (m.avoidTolls ? "|tolls" : "") + (m.avoidFerries ? "|noferry" : "");
+}
 
 // Route stops only: attached stops (inRoute=false) belong to the day but are
 // never waypoints, and never become the next day's origin.
@@ -18,6 +37,9 @@ async function orderedStopCoords(db: Db, dayId: string): Promise<Coord[]> {
 export async function reconcileDayRoutes(
   db: Db, tripId: string, compute: RouteComputer,
 ): Promise<Record<string, "ok" | "stale" | "failed">> {
+  const [trip] = await db.select({ avoidTolls: trips.avoidTolls, allowFerries: trips.allowFerries })
+    .from(trips).where(eq(trips.id, tripId)).limit(1);
+  const tripDefaults = trip ?? { avoidTolls: false, allowFerries: true };
   const tripDays = await db.select().from(days).where(eq(days.tripId, tripId)).orderBy(asc(days.position));
   const stopsByDay = new Map<string, Coord[]>();
   for (const d of tripDays) stopsByDay.set(d.id, await orderedStopCoords(db, d.id));
@@ -32,13 +54,14 @@ export async function reconcileDayRoutes(
 
     if (wp.length < 2) { await db.delete(dayRoutes).where(eq(dayRoutes.dayId, day.id)); continue; }
 
-    const hash = await waypointsHash(wp, "DRIVE");
+    const modifiers = effectiveModifiers(tripDefaults, day);
+    const hash = await waypointsHash(wp, routeMode(modifiers));
     const cached = (await db.select().from(dayRoutes).where(eq(dayRoutes.dayId, day.id)).limit(1))[0];
     const fresh = cached && cached.waypointsHash === hash && Date.now() - cached.computedAt < THIRTY_DAYS;
     if (fresh) { status[day.id] = "ok"; continue; }
 
     try {
-      const r = await compute(wp);
+      const r = await compute(wp, modifiers);
       const row = { dayId: day.id, waypointsHash: hash, polyline: r.polyline, distanceM: r.distanceM, durationS: r.durationS, computedAt: Date.now() };
       if (cached) await db.update(dayRoutes).set(row).where(eq(dayRoutes.dayId, day.id));
       else await db.insert(dayRoutes).values(row);

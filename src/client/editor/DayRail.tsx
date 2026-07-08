@@ -1,7 +1,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronDown, ChevronRight, TriangleAlert } from "lucide-react";
+import { ChevronDown, ChevronRight, Sparkles, TriangleAlert } from "lucide-react";
 import { daysWithStats } from "../lib/tripModel";
 import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
 import { TypeIcon } from "../components/TypeIcon";
@@ -68,8 +68,22 @@ function AttachedSection({ detail, dayId, attached, onSelect }: { detail: TripDe
   );
 }
 
+// Shimmering placeholder rows while the AI plans an empty trip: the rail itself
+// signals that days are on their way.
+function DaySkeleton({ n }: { n: number }) {
+  return (
+    <div className="ai-skeleton" aria-hidden style={{ display: "flex", alignItems: "center", gap: 11, padding: "8px 10px", marginBottom: 8, borderRadius: 9, animationDelay: `${n * 0.2}s` }}>
+      <span style={{ width: 34, height: 30, flex: "none", background: "rgba(87,103,107,.18)", borderRadius: 8 }} />
+      <span style={{ flex: 1 }}>
+        <span style={{ display: "block", width: "68%", height: 10, background: "rgba(87,103,107,.18)", borderRadius: 5 }} />
+        <span style={{ display: "block", width: "42%", height: 8, background: "rgba(87,103,107,.12)", borderRadius: 5, marginTop: 6 }} />
+      </span>
+    </div>
+  );
+}
+
 export function DayRail({ detail }: { detail: TripDetail }) {
-  const { selectedDayId, selectDay, expandedDayIds, toggleDayExpanded, selectPoint } = useEditorStore();
+  const { selectedDayId, selectDay, expandedDayIds, toggleDayExpanded, selectPoint, openChat, aiBusy } = useEditorStore();
   const createDay = useCreateDay(detail.trip.id);
   const days = daysWithStats(detail);
   return (
@@ -79,9 +93,14 @@ export function DayRail({ detail }: { detail: TripDetail }) {
         <button onClick={() => createDay.mutate({})} disabled={createDay.isPending}
           style={{ display: "flex", alignItems: "center", gap: 4, height: 24, padding: "0 9px", background: "#fff", border: "1px solid rgba(87,103,107,.28)", borderRadius: 6, fontSize: 11.5, fontWeight: 600, color: "var(--basalt)", cursor: "pointer" }}>+ Add day</button>
       </div>
-      {days.length === 0 && (
+      {days.length === 0 && (aiBusy ? (
+        <>
+          <div role="status" style={{ fontSize: 12, color: "var(--slate)", padding: "4px 6px 10px" }}>The AI is planning — days appear here as they're written.</div>
+          <DaySkeleton n={0} /><DaySkeleton n={1} /><DaySkeleton n={2} />
+        </>
+      ) : (
         <div style={{ fontSize: 12, color: "var(--slate)", padding: "4px 6px 10px" }}>No days yet. Add a day, then drag stops onto it.</div>
-      )}
+      ))}
       {days.map((d) => {
         const selected = selectedDayId === d.id;
         const expanded = expandedDayIds.has(d.id);
@@ -99,6 +118,8 @@ export function DayRail({ detail }: { detail: TripDetail }) {
                   </span>
                 </span>
               </button>
+              <button onClick={() => openChat(`Refine day ${d.position + 1}: `)} aria-label={`Refine day ${d.position + 1} with AI`} title="Refine with AI"
+                style={{ flex: "none", width: 24, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: "var(--slate)", cursor: "pointer" }}><Sparkles size={13} aria-hidden /></button>
               <button onClick={() => toggleDayExpanded(d.id)} aria-label="Toggle stops" aria-expanded={expanded}
                 style={{ flex: "none", width: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: "var(--slate)", cursor: "pointer" }}>{expanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}</button>
             </div>

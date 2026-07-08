@@ -21,7 +21,7 @@ vi.mock("../../src/client/lib/api", () => ({
 }));
 
 const detail: TripDetail = {
-  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
+  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
   groups: [{ id: "g1", tripId: "t1", name: "must-see", color: "#C64A3B", dayId: null }],
   points: [
     { id: "p0", tripId: "t1", name: "Jökulsárlón", lat: 1, lng: 1, type: "viewpoint", notes: "Boat tour", links: [{ label: "site", url: "https://x" }], estCost: 59, costBasis: "per_person", bookingStatus: "booked", groupId: "g1" },

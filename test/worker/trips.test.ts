@@ -2,8 +2,10 @@ import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:
 import { describe, it, expect } from "vitest";
 import { eq } from "drizzle-orm";
 import { appWith } from "../helpers/session";
-import { tripsRouter } from "../../src/worker/routes/trips";
+import { makeTripsRouter } from "../../src/worker/routes/trips";
 import { getDb, trips, points, days, dayStops, dayRoutes } from "../../src/worker/db/schema";
+
+const tripsRouter = makeTripsRouter();
 
 async function call(app: ReturnType<typeof appWith>, req: Request) {
   const ctx = createExecutionContext();
@@ -120,6 +122,52 @@ describe("trips", () => {
     expect((await call(anon, new Request("http://x/api/trips/t2", { method: "DELETE" }))).status).toBe(401);
 
     expect(await getDb(env).select().from(trips).where(eq(trips.id, "t2"))).toHaveLength(1);
+  });
+
+  it("patches profile fields and recomputes routes only on constraint change", async () => {
+    await seedTrip("t6", "alice");
+    // A second stop so the day has >= 2 waypoints — otherwise reconcile just
+    // drops the route row and never calls compute.
+    await getDb(env).insert(points).values({ id: "t6-p1", tripId: "t6", name: "Vik", lat: 63.42, lng: -19.01, createdAt: Date.now() });
+    await getDb(env).insert(dayStops).values({ dayId: "t6-d0", pointId: "t6-p1", position: 1 });
+    let computeCalls = 0;
+    const compute = async () => { computeCalls++; return { polyline: "p", distanceM: 1, durationS: 1 }; };
+    const alice = appWith("alice", makeTripsRouter(compute));
+
+    // Profile-only PATCH (vehicle/range): no constraint change → no recompute.
+    const res = await call(alice, new Request("http://x/api/trips/t6", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ vehicle: "ev", evRangeKm: 350 }),
+    }));
+    expect(res.status).toBe(200);
+    const t = await res.json<{ vehicle: string; evRangeKm: number; name: string }>();
+    expect(t.vehicle).toBe("ev");
+    expect(t.evRangeKm).toBe(350);
+    expect(t.name).toBe("Seed"); // untouched
+    expect(computeCalls).toBe(0);
+
+    // Constraint PATCH → inline reconcile under the new cache key.
+    const res2 = await call(alice, new Request("http://x/api/trips/t6", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ avoidTolls: true }),
+    }));
+    expect(res2.status).toBe(200);
+    expect((await res2.json<{ avoidTolls: boolean }>()).avoidTolls).toBe(true);
+    expect(computeCalls).toBeGreaterThan(0);
+  });
+
+  it("rejects invalid profile values", async () => {
+    await seedTrip("t7", "alice");
+    const alice = appWith("alice", tripsRouter);
+    const bad = (body: object) => call(alice, new Request("http://x/api/trips/t7", {
+      method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+    }));
+    expect((await bad({ vehicle: "boat" })).status).toBe(400);
+    expect((await bad({ evRangeKm: 10 })).status).toBe(400);
+    expect((await bad({ avoidTolls: "yes" })).status).toBe(400);
+    expect((await bad({})).status).toBe(400); // nothing to update
   });
 
   it("rejects unauthenticated create", async () => {

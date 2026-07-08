@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { DndContext, DragOverlay, MeasuringStrategy, PointerSensor, pointerWithin, rectIntersection, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
+import { LoaderCircle } from "lucide-react";
 import { useTrip, useMoveStop, useCreatePoint } from "../lib/api";
 import { EditorStoreProvider, useEditorStore } from "../state/editorStore";
 import { MapCanvas } from "../map/MapCanvas";
@@ -10,6 +11,7 @@ import { MapLayer } from "../map/MapLayer";
 import { DayRail } from "../editor/DayRail";
 import { Pool, StopCard } from "../editor/Pool";
 import { DetailPanel } from "../editor/DetailPanel";
+import { ChatPanel } from "../editor/ChatPanel";
 import { TopBar } from "../editor/TopBar";
 import { ShareDialog } from "../editor/ShareDialog";
 import { EmptyTrip } from "../editor/states";
@@ -30,7 +32,7 @@ const collisionDetection: CollisionDetection = (args) => {
 };
 
 function EditorBody({ detail }: { detail: TripDetail }) {
-  const { selectedPointId, droppingPin, cancelDropPin, selectDay, expandDay } = useEditorStore();
+  const { selectedPointId, droppingPin, cancelDropPin, selectDay, expandDay, aiBusy } = useEditorStore();
   const [shareOpen, setShareOpen] = useState(false);
   const [activePointId, setActivePointId] = useState<string | null>(null);
   const activePoint = activePointId ? detail.points.find((p) => p.id === activePointId) : undefined;
@@ -39,7 +41,9 @@ function EditorBody({ detail }: { detail: TripDetail }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const createPoint = useCreatePoint(detail.trip.id);
   const s = detail.stats;
-  const stats = `${formatDistance(s.totalDistanceM)} · ${formatDuration(s.totalDurationS)}` + (s.totalFuel != null ? ` · €${Math.round(s.totalFuel)} fuel` : "");
+  // Fuel-cost stat is meaningless for an EV (it's computed from l/100km).
+  const stats = `${formatDistance(s.totalDistanceM)} · ${formatDuration(s.totalDurationS)}` +
+    (s.totalFuel != null && detail.trip.vehicle !== "ev" ? ` · €${Math.round(s.totalFuel)} fuel` : "");
 
   function onDragStart(e: DragStartEvent) {
     setActivePointId(e.active.id as string);
@@ -78,10 +82,10 @@ function EditorBody({ detail }: { detail: TripDetail }) {
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
-        <TopBar tripId={detail.trip.id} tripName={detail.trip.name} stats={stats} onShare={() => setShareOpen(true)} />
+        <TopBar trip={detail.trip} stats={stats} onShare={() => setShareOpen(true)} />
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
-          <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+          <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
             <aside style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#F4F6F6", borderRight: "1px solid rgba(87,103,107,.18)" }}>
               <DayRail detail={detail} />
               <Pool detail={detail} />
@@ -93,9 +97,19 @@ function EditorBody({ detail }: { detail: TripDetail }) {
               </MapCanvas>
               {detail.points.length === 0 && (
                 <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-                  <div style={{ pointerEvents: "auto", background: "rgba(255,255,255,.92)", border: "1px solid rgba(87,103,107,.2)", borderRadius: 10, boxShadow: "0 8px 28px rgba(30,42,44,.16)" }}>
-                    <EmptyTrip />
-                  </div>
+                  {aiBusy ? (
+                    <div role="status" style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 22px", background: "rgba(255,255,255,.94)", border: "1px solid rgba(91,68,201,.3)", borderRadius: 10, boxShadow: "0 8px 28px rgba(30,42,44,.16)" }}>
+                      <LoaderCircle className="ai-spinner" size={20} color="var(--lupine)" aria-hidden />
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>The AI is planning your trip…</div>
+                        <div style={{ fontSize: 12.5, color: "var(--slate)", marginTop: 2 }}>Days and stops appear on the map as they're ready — follow along in the chat.</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ pointerEvents: "auto", background: "rgba(255,255,255,.92)", border: "1px solid rgba(87,103,107,.2)", borderRadius: 10, boxShadow: "0 8px 28px rgba(30,42,44,.16)" }}>
+                      <EmptyTrip />
+                    </div>
+                  )}
                 </div>
               )}
               {droppingPin && (
@@ -106,6 +120,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
               )}
             </main>
             {selectedPointId && <DetailPanel detail={detail} />}
+            <ChatPanel tripId={detail.trip.id} />
           </div>
           <DragOverlay>
             {activePoint && <div style={{ width: 320 }}><StopCard point={activePoint} detail={detail} /></div>}

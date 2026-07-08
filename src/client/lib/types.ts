@@ -10,7 +10,13 @@ export type DayStop = { dayId: string; pointId: string; position: number; inRout
 export type DayRoute = { dayId: string; polyline: string; distanceM: number; durationS: number; waypointsHash: string; computedAt: number };
 export type PerDayStat = { distanceM: number; durationS: number; fuel: number | null; warnLongDay: boolean };
 export type TripStats = { totalDistanceM: number; totalDurationS: number; totalFuel: number | null; perDay: Record<string, PerDayStat> };
-export type Trip = { id: string; name: string; startDate: string | null; currency: string; fuelLPer100km: number | null; fuelPricePerL: number | null; shareToken?: string | null; vehicleNotes?: string | null; budgetTotal?: number | null };
+export type Trip = {
+  id: string; name: string; startDate: string | null; currency: string;
+  fuelLPer100km: number | null; fuelPricePerL: number | null;
+  shareToken?: string | null; vehicleNotes?: string | null; budgetTotal?: number | null;
+  vehicle: "car" | "ev"; evRangeKm: number | null; avoidTolls: boolean; allowFerries: boolean;
+  mapLat: number | null; mapLng: number | null;
+};
 export type TripDetail = { trip: Trip; groups: Group[]; points: Point[]; days: Day[]; dayStops: DayStop[]; routes: DayRoute[]; stats: TripStats };
 // GET /api/points/:pid/place — server-cached Google Place Details.
 export type PlaceDetails = { formattedAddress: string | null; rating: number | null; userRatingCount: number | null; weekdayHours: string[]; websiteUri: string | null; phone: string | null };

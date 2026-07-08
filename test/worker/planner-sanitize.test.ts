@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stripPendingToolUses } from "../../src/worker/lib/ai/planner";
+import { stripPendingToolUses, stripUnresolvedServerToolUses } from "../../src/worker/lib/ai/planner";
 import type Anthropic from "@anthropic-ai/sdk";
 
 type Msg = Anthropic.Messages.MessageParam;
@@ -38,6 +38,19 @@ describe("stripPendingToolUses", () => {
     const content = stripPendingToolUses(msgs)[1].content as Array<{ type: string; id?: string }>;
     expect(content.map((b) => b.type)).toEqual(["server_tool_use", "web_search_tool_result", "text"]);
     expect(content[0].id).toBe("s1");
+  });
+
+  it("mid-turn: drops an unresolved server_tool_use but keeps resolved ones and custom tool_uses", () => {
+    const content = [
+      { type: "server_tool_use", id: "s1", name: "web_search", input: { query: "a" } },
+      { type: "web_search_tool_result", tool_use_id: "s1", content: [] },
+      { type: "server_tool_use", id: "s2", name: "web_search", input: { query: "b" } }, // no result arrived
+      { type: "text", text: "Now locating…" },
+      { type: "tool_use", id: "tu1", name: "geocode_places", input: {} }, // answered by the next tool_result
+    ] as unknown as Anthropic.Messages.ContentBlock[];
+    const out = stripUnresolvedServerToolUses(content) as Array<{ type: string; id?: string }>;
+    expect(out.map((b) => b.type)).toEqual(["server_tool_use", "web_search_tool_result", "text", "tool_use"]);
+    expect(out[0].id).toBe("s1");
   });
 
   it("drops the whole assistant message when only thinking would remain", () => {

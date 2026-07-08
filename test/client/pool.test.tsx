@@ -10,7 +10,7 @@ vi.mock("@vis.gl/react-google-maps", () => ({ useMapsLibrary: () => null }));
 import { Pool } from "../../src/client/editor/Pool";
 
 const detail: TripDetail = {
-  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
+  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
   groups: [{ id: "g1", tripId: "t1", name: "backup options", color: "#3E7CB1", dayId: null }],
   points: [
     { id: "p0", tripId: "t1", name: "Dettifoss", lat: 1, lng: 1, type: "viewpoint", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: "g1" },
