@@ -12,7 +12,7 @@ vi.mock("@vis.gl/react-google-maps", () => ({
 import { MapLayer } from "../../src/client/map/MapLayer";
 
 const detail: TripDetail = {
-  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
+  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
   groups: [], points: [
     { id: "p0", tripId: "t1", name: "A", lat: 1, lng: 1, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },
     { id: "p1", tripId: "t1", name: "B", lat: 2, lng: 2, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },

@@ -1,13 +1,17 @@
 import { createContext, useContext, useMemo, useReducer } from "react";
 
-type State = { selectedDayId: string | null; expandedDayIds: ReadonlySet<string>; selectedPointId: string | null; droppingPin: boolean };
+type State = { selectedDayId: string | null; expandedDayIds: ReadonlySet<string>; selectedPointId: string | null; droppingPin: boolean; chatOpen: boolean; chatPrefill: string | null; aiBusy: boolean };
 type Action =
   | { t: "selectDay"; id: string | null }
   | { t: "toggleDayExpanded"; id: string }
   | { t: "expandDay"; id: string }
   | { t: "selectPoint"; id: string | null }
   | { t: "startDropPin" }
-  | { t: "cancelDropPin" };
+  | { t: "cancelDropPin" }
+  | { t: "openChat"; prefill?: string }
+  | { t: "closeChat" }
+  | { t: "consumeChatPrefill" }
+  | { t: "setAiBusy"; busy: boolean };
 
 function reducer(s: State, a: Action): State {
   switch (a.t) {
@@ -21,6 +25,10 @@ function reducer(s: State, a: Action): State {
     case "selectPoint": return { ...s, selectedPointId: a.id };
     case "startDropPin": return { ...s, droppingPin: true };
     case "cancelDropPin": return { ...s, droppingPin: false };
+    case "openChat": return { ...s, chatOpen: true, chatPrefill: a.prefill ?? s.chatPrefill };
+    case "closeChat": return { ...s, chatOpen: false };
+    case "consumeChatPrefill": return s.chatPrefill == null ? s : { ...s, chatPrefill: null };
+    case "setAiBusy": return s.aiBusy === a.busy ? s : { ...s, aiBusy: a.busy };
   }
 }
 
@@ -31,11 +39,15 @@ type Store = State & {
   selectPoint: (id: string | null) => void;
   startDropPin: () => void;
   cancelDropPin: () => void;
+  openChat: (prefill?: string) => void;
+  closeChat: () => void;
+  consumeChatPrefill: () => void;
+  setAiBusy: (busy: boolean) => void;
 };
 const Ctx = createContext<Store | null>(null);
 
 export function EditorStoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { selectedDayId: null, expandedDayIds: new Set<string>(), selectedPointId: null, droppingPin: false });
+  const [state, dispatch] = useReducer(reducer, { selectedDayId: null, expandedDayIds: new Set<string>(), selectedPointId: null, droppingPin: false, chatOpen: true, chatPrefill: null, aiBusy: false });
   const value = useMemo<Store>(() => ({
     ...state,
     selectDay: (id) => dispatch({ t: "selectDay", id }),
@@ -44,6 +56,10 @@ export function EditorStoreProvider({ children }: { children: React.ReactNode })
     selectPoint: (id) => dispatch({ t: "selectPoint", id }),
     startDropPin: () => dispatch({ t: "startDropPin" }),
     cancelDropPin: () => dispatch({ t: "cancelDropPin" }),
+    openChat: (prefill) => dispatch({ t: "openChat", prefill }),
+    closeChat: () => dispatch({ t: "closeChat" }),
+    consumeChatPrefill: () => dispatch({ t: "consumeChatPrefill" }),
+    setAiBusy: (busy) => dispatch({ t: "setAiBusy", busy }),
   }), [state]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

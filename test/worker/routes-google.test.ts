@@ -17,5 +17,21 @@ describe("googleRouteComputer", () => {
     expect(captured.destination.location.latLng).toEqual({ latitude: 3, longitude: 3 });
     expect(captured.intermediates).toHaveLength(1);
     expect(captured.routingPreference).toBe("TRAFFIC_UNAWARE");
+    expect(captured.routeModifiers).toBeUndefined(); // no modifiers → field omitted entirely
+  });
+
+  it("includes routeModifiers only when a modifier is set", async () => {
+    let captured: any = null;
+    const fakeFetch = async (_url: string, init: RequestInit) => {
+      captured = JSON.parse(init.body as string);
+      return new Response(JSON.stringify({
+        routes: [{ polyline: { encodedPolyline: "abc" }, distanceMeters: 1, duration: "1s" }],
+      }), { status: 200 });
+    };
+    const compute = googleRouteComputer("KEY", fakeFetch as unknown as typeof fetch);
+    await compute([{ lat: 1, lng: 1 }, { lat: 2, lng: 2 }], { avoidTolls: true });
+    expect(captured.routeModifiers).toEqual({ avoidTolls: true, avoidFerries: false });
+    await compute([{ lat: 1, lng: 1 }, { lat: 2, lng: 2 }], { avoidTolls: false, avoidFerries: false });
+    expect(captured.routeModifiers).toBeUndefined();
   });
 });

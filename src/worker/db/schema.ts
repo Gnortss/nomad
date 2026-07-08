@@ -12,6 +12,18 @@ export const trips = sqliteTable("trips", {
   vehicleNotes: text("vehicle_notes"),
   fuelLPer100km: real("fuel_l_per_100km"),
   fuelPricePerL: real("fuel_price_per_l"),
+  vehicle: text("vehicle").notNull().default("car"), // 'car' | 'ev' (app-level enum)
+  evRangeKm: integer("ev_range_km"),
+  avoidTolls: integer("avoid_tolls", { mode: "boolean" }).notNull().default(false),
+  allowFerries: integer("allow_ferries", { mode: "boolean" }).notNull().default(true),
+  // Map center extracted from the new-trip description; shown before any points exist.
+  mapLat: real("map_lat"),
+  mapLng: real("map_lng"),
+  // AI chat turn lock (CAS token + heartbeat) and the new-trip description seed.
+  chatTurnToken: text("chat_turn_token"),
+  chatTurnClaimedAt: integer("chat_turn_claimed_at"),
+  chatSeed: text("chat_seed"),
+  chatSeedConsumed: integer("chat_seed_consumed", { mode: "boolean" }).notNull().default(false),
   currency: text("currency").notNull().default("EUR"),
   budgetTotal: real("budget_total"),
   shareToken: text("share_token").unique(),
@@ -54,6 +66,9 @@ export const days = sqliteTable("days", {
   departureTime: text("departure_time"),
   targetArrivalTime: text("target_arrival_time"),
   notes: text("notes"),
+  // Per-day routing overrides: null = inherit the trip default.
+  avoidTolls: integer("avoid_tolls", { mode: "boolean" }),
+  allowFerries: integer("allow_ferries", { mode: "boolean" }),
 }, (t) => ({ tripPos: unique("uq_days_trip_position").on(t.tripId, t.position) }));
 
 export const dayStops = sqliteTable("day_stops", {
@@ -65,6 +80,23 @@ export const dayStops = sqliteTable("day_stops", {
   pk: primaryKey({ columns: [t.dayId, t.pointId] }),
   orderIdx: index("idx_day_stops_order").on(t.dayId, t.position),
 }));
+
+// Provider-neutral display transcript for the editor chat panel.
+export const tripChatLog = sqliteTable("trip_chat_log", {
+  tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  seq: integer("seq").notNull(),
+  kind: text("kind").notNull(), // 'user' | 'assistant' | 'tool'
+  text: text("text").notNull(),
+}, (t) => ({ pk: primaryKey({ columns: [t.tripId, t.seq] }) }));
+
+// Raw Anthropic messages, one per row. Disposable: pruned oldest-first by WHOLE
+// turns so tool_use/tool_result pairs are never split across the cut.
+export const tripChatContext = sqliteTable("trip_chat_context", {
+  tripId: text("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  seq: integer("seq").notNull(),
+  turn: integer("turn").notNull(),
+  message: text("message").notNull(), // JSON MessageParam
+}, (t) => ({ pk: primaryKey({ columns: [t.tripId, t.seq] }) }));
 
 export const dayRoutes = sqliteTable("day_routes", {
   dayId: text("day_id").primaryKey().references(() => days.id, { onDelete: "cascade" }),
@@ -123,7 +155,7 @@ export const verification = sqliteTable("verification", {
 });
 
 export const schema = {
-  trips, groups, points, days, dayStops, dayRoutes,
+  trips, groups, points, days, dayStops, dayRoutes, tripChatLog, tripChatContext,
   user, session, account, verification,
 };
 export function getDb(env: Env) {

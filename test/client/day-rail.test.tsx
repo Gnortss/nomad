@@ -6,7 +6,7 @@ import { DayRail } from "../../src/client/editor/DayRail";
 import type { TripDetail } from "../../src/client/lib/types";
 
 const detail: TripDetail = {
-  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
+  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
   groups: [{ id: "g1", tripId: "t1", name: "Sleep options", color: "#446677", dayId: "d0" }],
   points: [
     { id: "p0", tripId: "t1", name: "Reykjavík", lat: 1, lng: 1, type: "camp", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "booked", groupId: null },

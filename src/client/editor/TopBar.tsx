@@ -2,9 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePatchTrip, useDeleteTrip } from "../lib/api";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { TripSettingsDialog } from "./TripSettingsDialog";
+import type { Trip } from "../lib/types";
 
-export function TopBar({ tripId, tripName, stats, onShare }: { tripId: string; tripName: string; stats: string; onShare: () => void }) {
+export function TopBar({ trip, stats, onShare }: { trip: Trip; stats: string; onShare: () => void }) {
+  const tripId = trip.id, tripName = trip.name;
   const [confirming, setConfirming] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const del = useDeleteTrip();
   const navigate = useNavigate();
 
@@ -15,12 +19,14 @@ export function TopBar({ tripId, tripName, stats, onShare }: { tripId: string; t
       <TripName key={tripName} tripId={tripId} tripName={tripName} />
       <span className="mono" style={{ marginLeft: 20, fontSize: 12.5, color: "#aab8b7" }}>{stats}</span>
       <div style={{ flex: 1 }} />
+      <button onClick={() => setSettingsOpen(true)} style={{ height: 34, padding: "0 12px", background: "transparent", color: "var(--glacier)", border: "1px solid rgba(236,240,240,.3)", borderRadius: 7, fontSize: 13.5, cursor: "pointer" }}>Settings</button>
       <button onClick={() => setConfirming(true)} style={{ height: 34, padding: "0 12px", background: "transparent", color: "var(--glacier)", border: "1px solid rgba(236,240,240,.3)", borderRadius: 7, fontSize: 13.5, cursor: "pointer" }}>Delete trip</button>
       <button onClick={onShare} style={{ height: 34, padding: "0 15px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 7, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}>Share trip</button>
       {confirming && (
         <ConfirmDialog title={`Delete "${tripName}"?`} body="This removes the trip and all of its stops, days and routes."
           confirmLabel="Delete trip" onConfirm={() => del.mutate(tripId, { onSuccess: () => navigate("/trips") })} onCancel={() => setConfirming(false)} />
       )}
+      {settingsOpen && <TripSettingsDialog trip={trip} onClose={() => setSettingsOpen(false)} />}
     </header>
   );
 }

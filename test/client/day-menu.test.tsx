@@ -6,7 +6,7 @@ import { DayMenu } from "../../src/client/editor/DayMenu";
 import type { TripDetail } from "../../src/client/lib/types";
 
 const detail: TripDetail = {
-  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
+  trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
   groups: [],
   points: [{ id: "p0", tripId: "t1", name: "Dettifoss", lat: 1, lng: 1, type: "viewpoint", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null }],
   days: [{ id: "d0", tripId: "t1", position: 0, title: "A" }],

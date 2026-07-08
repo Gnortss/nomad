@@ -34,3 +34,34 @@ body {
 .ovp {
   font-family: var(--font-display);
 }
+
+/* AI busy-state feedback */
+@keyframes ai-dot {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+.ai-dots span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--lupine);
+  animation: ai-dot 1.2s infinite ease-in-out;
+}
+.ai-dots span:nth-child(2) { animation-delay: 0.15s; }
+.ai-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes ai-spin {
+  to { transform: rotate(360deg); }
+}
+.ai-spinner {
+  animation: ai-spin 1s linear infinite;
+}
+
+@keyframes ai-shimmer {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+.ai-skeleton {
+  animation: ai-shimmer 1.4s infinite ease-in-out;
+}
