@@ -1,27 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useTrips, useCreateTrip, useDeleteTrip } from "../lib/api";
+import { useTrips, useDeleteTrip } from "../lib/api";
 import { signOut } from "../lib/auth";
 import { TripThumb } from "../map/TripThumb";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { NewTripModal } from "../components/NewTripModal";
 import type { TripListItem } from "../lib/types";
 
 export function TripListScreen() {
   const navigate = useNavigate();
   const { data } = useTrips();
-  const create = useCreateTrip();
-
-  async function onNew() {
-    const trip = await create.mutateAsync("New trip");
-    navigate(`/trips/${(trip as { id: string }).id}`);
-  }
+  const [showNewTrip, setShowNewTrip] = useState(false);
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <header style={{ height: 56, display: "flex", alignItems: "center", gap: 16, padding: "0 18px", background: "var(--basalt)", color: "var(--glacier)" }}>
         <span className="ovp" style={{ fontWeight: 800, letterSpacing: ".06em" }}>NOMAD</span>
         <div style={{ flex: 1 }} />
-        <button onClick={onNew} style={{ height: 34, padding: "0 15px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 7, fontWeight: 600, cursor: "pointer" }}>+ New trip</button>
+        <button onClick={() => setShowNewTrip(true)} style={{ height: 34, padding: "0 15px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 7, fontWeight: 600, cursor: "pointer" }}>+ New trip</button>
         <button onClick={signOut} style={{ marginLeft: 8, background: "transparent", color: "var(--glacier)", border: "1px solid rgba(236,240,240,.3)", borderRadius: 7, padding: "6px 12px", cursor: "pointer" }}>Sign out</button>
       </header>
       <div style={{ flex: 1, overflowY: "auto", padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 16, alignContent: "start" }}>
@@ -37,6 +33,9 @@ export function TripListScreen() {
           </div>
         ))}
       </div>
+      {showNewTrip && (
+        <NewTripModal onClose={() => setShowNewTrip(false)} onCreated={(id) => navigate(`/trips/${id}`)} />
+      )}
     </div>
   );
 }
