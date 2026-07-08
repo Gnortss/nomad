@@ -6,7 +6,7 @@ import { TypeIcon } from "../components/TypeIcon";
 import { DayMenu } from "./DayMenu";
 import type { TripDetail, Point } from "../lib/types";
 
-const TYPE_LABEL: Record<string, string> = { camp: "Campsite", wildcamp: "Wild camp", hostel: "Hostel", hotel: "Hotel / apartment", poi: "Point of interest", fuel: "Fuel stop", food: "Food", viewpoint: "Viewpoint", activity: "Activity", other: "Other" };
+const TYPE_LABEL: Record<string, string> = { camp: "Campsite", wildcamp: "Wild camp", hostel: "Hostel", hotel: "Hotel / apartment", poi: "Point of interest", fuel: "Fuel stop", charging: "Charging stop", food: "Food", viewpoint: "Viewpoint", activity: "Activity", other: "Other" };
 const STATUSES: Array<{ key: string; label: string; color: string }> = [
   { key: "idea", label: "Idea", color: "var(--slate)" },
   { key: "to_book", label: "To book", color: "var(--sulfur)" },

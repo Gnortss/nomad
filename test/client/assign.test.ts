@@ -16,7 +16,7 @@ describe("computeDrop", () => {
 
 const point = (id: string) => ({ id, tripId: "t1", name: id, lat: 0, lng: 0, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null });
 const detail = {
-  trip: { id: "t1", name: "T", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null },
+  trip: { id: "t1", name: "T", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
   groups: [],
   points: [point("a"), point("b"), point("c"), point("x")],
   days: [{ id: "d1", tripId: "t1", position: 0, title: null }, { id: "d2", tripId: "t1", position: 1, title: null }],
