@@ -12,9 +12,12 @@
   ],
   "env": {
     "preview": {
-      "vars": { "BETTER_AUTH_URL": "https://REPLACE_PREVIEW_DOMAIN" },
+      "routes": [
+        { "pattern": "preview.nomad.devsoup.xyz", "custom_domain": true }
+      ],
+      "vars": { "BETTER_AUTH_URL": "https://preview.nomad.devsoup.xyz" },
       "d1_databases": [
-        { "binding": "DB", "database_name": "nomad-preview", "database_id": "REPLACE", "migrations_dir": "migrations" }
+        { "binding": "DB", "database_name": "nomad-preview", "database_id": "c59766a1-3979-4f6f-9d5e-5199691a75c5", "migrations_dir": "migrations" }
       ]
     },
     "production": {
