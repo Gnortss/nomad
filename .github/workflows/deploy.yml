@@ -1,12 +1,14 @@
 name: deploy
 
 on:
-  push:
-    branches: [main]
-  pull_request: {}
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   build-deploy:
+    # Open-PR events build + deploy preview; a merged PR deploys production.
+    # A PR that is closed without merging does nothing.
+    if: github.event.action != 'closed' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,20 +27,20 @@ jobs:
           # `wrangler deploy` then uses via the .wrangler/deploy config redirect.
           # Passing --env to `wrangler deploy` does NOT work (redirect ignores it
           # and deploys the top-level worker).
-          CLOUDFLARE_ENV: ${{ github.event_name == 'push' && 'production' || 'preview' }}
+          CLOUDFLARE_ENV: ${{ (github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') && 'production' || 'preview' }}
           VITE_GOOGLE_MAPS_BROWSER_KEY: ${{ vars.VITE_GOOGLE_MAPS_BROWSER_KEY }}
           VITE_GOOGLE_MAPS_MAP_ID: ${{ vars.VITE_GOOGLE_MAPS_MAP_ID }}
 
-      - name: Apply migrations + deploy production (push to main)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      - name: Apply migrations + deploy production (PR merged to main)
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
         run: |
           npx wrangler d1 migrations apply nomad-prod --env production --remote
           npx wrangler deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-      - name: Apply migrations + deploy preview (pull requests)
-        if: github.event_name == 'pull_request'
+      - name: Apply migrations + deploy preview (open pull requests)
+        if: github.event.action != 'closed'
         run: |
           npx wrangler d1 migrations apply nomad-preview --env preview --remote
           npx wrangler deploy
