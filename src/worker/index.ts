@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { createAuth, type AppEnv } from "./auth";
 import { tripsRouter } from "./routes/trips";
-import { pointsRouter } from "./routes/points";
+import { pointsRouter, makePlaceInfoRouter } from "./routes/points";
 import { daysRouter } from "./routes/days";
 import { makeStopsRouter } from "./routes/stops";
 import { tripDetailRouter } from "./routes/trip-detail";
@@ -29,6 +29,7 @@ app.use("/api/*", async (c, next) => {
 
 app.route("/", tripsRouter);
 app.route("/", pointsRouter);
+app.route("/", makePlaceInfoRouter());
 app.route("/", daysRouter);
 app.route("/", makeStopsRouter());
 app.route("/", tripDetailRouter);

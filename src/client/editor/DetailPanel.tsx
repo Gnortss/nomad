@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link as LinkIcon, X } from "lucide-react";
-import { usePatchPoint, useDeletePoint, useToggleStopRoute, useCreateGroup } from "../lib/api";
+import { usePatchPoint, useDeletePoint, useToggleStopRoute, useCreateGroup, usePlaceInfo } from "../lib/api";
 import { useEditorStore } from "../state/editorStore";
 import { TypeIcon } from "../components/TypeIcon";
 import { DayMenu } from "./DayMenu";
@@ -22,6 +22,52 @@ export function DetailPanel({ detail }: { detail: TripDetail }) {
   if (!p) return null;
   // key resets all field drafts when the selection changes.
   return <PointEditor key={p.id} detail={detail} point={p} />;
+}
+
+// Google Place Details fetched lazily (server-cached 30 days). The Maps link is
+// free — built from the stored place id, or plain coords for pin-dropped stops.
+function PlaceSection({ point: p }: { point: Point }) {
+  const info = usePlaceInfo(p.id, !!p.googlePlaceId).data;
+  const mapsUrl = p.googlePlaceId
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&query_place_id=${p.googlePlaceId}`
+    : `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
+  const place = info?.status === "ok" ? info.place : undefined;
+  return (
+    <div>
+      <div className="ovp" style={SECTION_HEAD}>PLACE</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {place && (
+          <div style={{ padding: "9px 11px", background: "#fff", border: FIELD_BORDER, borderRadius: 7, display: "flex", flexDirection: "column", gap: 4, fontSize: 12.5 }}>
+            {place.rating != null && (
+              <div style={{ fontWeight: 700 }}>
+                ★ {place.rating.toFixed(1)}
+                {place.userRatingCount != null && <span style={{ color: "var(--slate)", fontWeight: 400 }}> ({place.userRatingCount.toLocaleString()} reviews)</span>}
+              </div>
+            )}
+            {place.formattedAddress && <div style={{ color: "var(--slate)" }}>{place.formattedAddress}</div>}
+            {(place.websiteUri || place.phone) && (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>Website</a>}
+                {place.phone && <a href={`tel:${place.phone}`} style={{ fontWeight: 600 }}>{place.phone}</a>}
+              </div>
+            )}
+            {place.weekdayHours.length > 0 && (
+              <details>
+                <summary style={{ cursor: "pointer", color: "var(--slate)", fontWeight: 600 }}>Opening hours</summary>
+                <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2, color: "var(--slate)" }}>
+                  {place.weekdayHours.map((h, i) => <div key={i}>{h}</div>)}
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+        <a href={mapsUrl} target="_blank" rel="noreferrer"
+          style={{ alignSelf: "flex-start", padding: "5px 10px", background: "transparent", border: "1px dashed rgba(87,103,107,.35)", borderRadius: 7, fontSize: 12, fontWeight: 600, color: "var(--slate)" }}>
+          Open in Google Maps ↗
+        </a>
+      </div>
+    </div>
+  );
 }
 
 function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point }) {
@@ -92,6 +138,7 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
         <button onClick={() => selectPoint(null)} aria-label="Close details" style={{ width: 30, height: 30, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "rgba(87,103,107,.12)", borderRadius: 7, cursor: "pointer" }}><X size={15} aria-hidden /></button>
       </div>
       <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <PlaceSection point={p} />
         <div>
           <div className="ovp" style={SECTION_HEAD}>DAY</div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

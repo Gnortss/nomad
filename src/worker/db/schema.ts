@@ -75,6 +75,22 @@ export const dayRoutes = sqliteTable("day_routes", {
   computedAt: integer("computed_at").notNull(),
 });
 
+// Cached Google Place Details (New), keyed by place_id and shared across trips.
+// 30-day freshness enforced in code (Google's caching policy ceiling).
+export const placeDetails = sqliteTable("place_details", {
+  placeId: text("place_id").primaryKey(),
+  data: text("data").notNull(), // JSON PlaceDetails
+  fetchedAt: integer("fetched_at").notNull(),
+});
+
+// Monthly Google API call counters; the place-info endpoint stops calling
+// Google at 90% of the SKU's free monthly tier.
+export const apiUsage = sqliteTable("api_usage", {
+  month: text("month").notNull(), // 'YYYY-MM'
+  sku: text("sku").notNull(),
+  count: integer("count").notNull().default(0),
+}, (t) => ({ pk: primaryKey({ columns: [t.month, t.sku] }) }));
+
 // --- better-auth tables (verified against @better-auth/core getAuthTables, v1.6) ---
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -123,7 +139,7 @@ export const verification = sqliteTable("verification", {
 });
 
 export const schema = {
-  trips, groups, points, days, dayStops, dayRoutes,
+  trips, groups, points, days, dayStops, dayRoutes, placeDetails, apiUsage,
   user, session, account, verification,
 };
 export function getDb(env: Env) {

@@ -12,5 +12,8 @@ export type PerDayStat = { distanceM: number; durationS: number; fuel: number | 
 export type TripStats = { totalDistanceM: number; totalDurationS: number; totalFuel: number | null; perDay: Record<string, PerDayStat> };
 export type Trip = { id: string; name: string; startDate: string | null; currency: string; fuelLPer100km: number | null; fuelPricePerL: number | null; shareToken?: string | null; vehicleNotes?: string | null; budgetTotal?: number | null };
 export type TripDetail = { trip: Trip; groups: Group[]; points: Point[]; days: Day[]; dayStops: DayStop[]; routes: DayRoute[]; stats: TripStats };
+// GET /api/points/:pid/place — server-cached Google Place Details.
+export type PlaceDetails = { formattedAddress: string | null; rating: number | null; userRatingCount: number | null; weekdayHours: string[]; websiteUri: string | null; phone: string | null };
+export type PlaceInfo = { status: "ok" | "none" | "budget" | "error"; place?: PlaceDetails };
 // GET /api/trips enriches each trip with coords + polylines for the dashboard thumbnails.
 export type TripListItem = Trip & { points: { lat: number; lng: number }[]; routePolylines: string[] };
