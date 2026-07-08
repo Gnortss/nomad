@@ -1,8 +1,9 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
-import { getDb, points, trips } from "../db/schema";
+import { and, eq, sql } from "drizzle-orm";
+import { getDb, points, trips, placeDetails, apiUsage } from "../db/schema";
 import { newId } from "../lib/id";
 import { requireTrip } from "../lib/ownership";
+import { googlePlaceDetails, type PlaceDetailsFetcher } from "../lib/places";
 import type { AppEnv } from "../auth";
 
 type Vars = { user: { id: string } | null };
@@ -66,3 +67,47 @@ pointsRouter.delete("/api/points/:pid", async (c) => {
   await db.delete(points).where(eq(points.id, c.req.param("pid")));
   return c.body(null, 204);
 });
+
+// Lazy place info for a stop: served from the D1 cache while fresh, otherwise
+// one Place Details call — hard-capped per month so it can never leave the
+// Google free tier. Never serves cache rows older than the TTL (Google policy).
+const PLACE_TTL_MS = 30 * 24 * 3600 * 1000;
+const PLACE_SKU = "place_details_enterprise";
+const PLACE_BUDGET = 900; // 90% of the 1,000 free Enterprise calls/month
+
+export function makePlaceInfoRouter(fetchOverride?: PlaceDetailsFetcher) {
+  const r = new Hono<{ Bindings: AppEnv; Variables: Vars }>();
+  r.get("/api/points/:pid/place", async (c) => {
+    const user = c.get("user");
+    if (!user) return c.json({ error: "unauthorized" }, 401);
+    const db = getDb(c.env);
+    const row = (await db.select({ userId: trips.userId, placeId: points.googlePlaceId })
+      .from(points).innerJoin(trips, eq(points.tripId, trips.id))
+      .where(eq(points.id, c.req.param("pid"))).limit(1))[0];
+    if (!row || row.userId !== user.id) return c.json({ error: "not found" }, 404);
+    if (!row.placeId) return c.json({ status: "none" });
+
+    const cached = (await db.select().from(placeDetails).where(eq(placeDetails.placeId, row.placeId)).limit(1))[0];
+    if (cached && Date.now() - cached.fetchedAt < PLACE_TTL_MS)
+      return c.json({ status: "ok", place: JSON.parse(cached.data) });
+
+    const month = new Date().toISOString().slice(0, 7);
+    const usage = (await db.select().from(apiUsage)
+      .where(and(eq(apiUsage.month, month), eq(apiUsage.sku, PLACE_SKU))).limit(1))[0];
+    if ((usage?.count ?? 0) >= PLACE_BUDGET) return c.json({ status: "budget" });
+
+    // Count the attempt before calling: overcounts on failure, never undercounts.
+    await db.insert(apiUsage).values({ month, sku: PLACE_SKU, count: 1 })
+      .onConflictDoUpdate({ target: [apiUsage.month, apiUsage.sku], set: { count: sql`${apiUsage.count} + 1` } });
+
+    const fetchPlace = fetchOverride ?? googlePlaceDetails(c.env.GOOGLE_ROUTES_KEY);
+    const place = await fetchPlace(row.placeId);
+    if (!place) return c.json({ status: "error" });
+
+    const fresh = { placeId: row.placeId, data: JSON.stringify(place), fetchedAt: Date.now() };
+    await db.insert(placeDetails).values(fresh)
+      .onConflictDoUpdate({ target: placeDetails.placeId, set: { data: fresh.data, fetchedAt: fresh.fetchedAt } });
+    return c.json({ status: "ok", place });
+  });
+  return r;
+}

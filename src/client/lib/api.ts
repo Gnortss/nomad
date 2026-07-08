@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { rewriteDayStops } from "./tripModel";
-import type { TripDetail, Trip, TripListItem, Group } from "./types";
+import type { TripDetail, Trip, TripListItem, Group, PlaceInfo } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { credentials: "include", headers: { "content-type": "application/json" }, ...init });
@@ -16,6 +16,7 @@ export const patchTrip = (id: string, body: object) => req<Trip>(`/api/trips/${i
 export const deleteTrip = (id: string) => req<void>(`/api/trips/${id}`, { method: "DELETE" });
 
 export const createPoint = (tripId: string, body: object) => req(`/api/trips/${tripId}/points`, { method: "POST", body: JSON.stringify(body) });
+export const getPlaceInfo = (pointId: string) => req<PlaceInfo>(`/api/points/${pointId}/place`);
 export const patchPoint = (id: string, body: object) => req(`/api/points/${id}`, { method: "PATCH", body: JSON.stringify(body) });
 export const deletePoint = (id: string) => req<void>(`/api/points/${id}`, { method: "DELETE" });
 
@@ -39,6 +40,10 @@ export const rotateShare = (tripId: string) => req<{ shareToken: string }>(`/api
 export const getShare = (token: string) => req<unknown>(`/api/share/${token}`);
 
 export const useTrips = () => useQuery({ queryKey: ["trips"], queryFn: listTrips });
+// Server caches place details in D1 for 30 days; staleTime Infinity keeps a
+// browser session from re-asking for the same stop.
+export const usePlaceInfo = (pointId: string, enabled: boolean) =>
+  useQuery({ queryKey: ["place", pointId], queryFn: () => getPlaceInfo(pointId), enabled, staleTime: Infinity });
 export const useTrip = (id: string) => useQuery({ queryKey: ["trip", id], queryFn: () => getTrip(id) });
 
 export function useInvalidateTrip(tripId: string) {

@@ -18,5 +18,8 @@ export type Trip = {
   mapLat: number | null; mapLng: number | null;
 };
 export type TripDetail = { trip: Trip; groups: Group[]; points: Point[]; days: Day[]; dayStops: DayStop[]; routes: DayRoute[]; stats: TripStats };
+// GET /api/points/:pid/place — server-cached Google Place Details.
+export type PlaceDetails = { formattedAddress: string | null; rating: number | null; userRatingCount: number | null; weekdayHours: string[]; websiteUri: string | null; phone: string | null };
+export type PlaceInfo = { status: "ok" | "none" | "budget" | "error"; place?: PlaceDetails };
 // GET /api/trips enriches each trip with coords + polylines for the dashboard thumbnails.
 export type TripListItem = Trip & { points: { lat: number; lng: number }[]; routePolylines: string[] };
