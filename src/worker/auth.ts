@@ -9,6 +9,7 @@ export type AppEnv = Env & {
   GOOGLE_CLIENT_SECRET: string;
   BETTER_AUTH_URL: string;
   GOOGLE_ROUTES_KEY: string;
+  ANTHROPIC_API_KEY?: string; // optional: AI trip planning degrades to blank-trip creation without it
 };
 
 export function createAuth(env: AppEnv) {

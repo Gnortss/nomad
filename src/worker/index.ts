@@ -7,6 +7,7 @@ import { makeStopsRouter } from "./routes/stops";
 import { tripDetailRouter } from "./routes/trip-detail";
 import { groupsRouter } from "./routes/groups";
 import { shareRouter } from "./routes/share";
+import { aiChatRouter } from "./routes/ai-chat";
 
 export type Env = { DB: D1Database };
 type Variables = { user: { id: string } | null };
@@ -33,5 +34,6 @@ app.route("/", makeStopsRouter());
 app.route("/", tripDetailRouter);
 app.route("/", groupsRouter);
 app.route("/", shareRouter);
+app.route("/", aiChatRouter);
 
 export default app;

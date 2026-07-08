@@ -23,10 +23,12 @@ const wrap = (ui: React.ReactNode) => render(
 );
 
 describe("TripList", () => {
-  it("lists trips and creates+navigates on new trip", async () => {
+  it("lists trips and opens the new-trip modal; blank-trip path creates+navigates", async () => {
     wrap(<TripListScreen />);
     expect(screen.getByText("Iceland Ring Road")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /new trip/i }));
+    expect(screen.getByRole("dialog", { name: "New trip" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /blank trip/i }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/trips/t2"));
   });
 
