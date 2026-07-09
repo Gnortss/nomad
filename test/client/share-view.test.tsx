@@ -23,7 +23,7 @@ describe("ShareView", () => {
     render(<ShareView />);
     await waitFor(() => expect(screen.getByText("Iceland Ring Road")).toBeTruthy());
     expect(screen.getByText(/view only/i)).toBeTruthy();
-    expect(screen.getByText("1. Reynisfjara")).toBeTruthy();
+    expect(screen.getByText("Reynisfjara")).toBeTruthy(); // numbered index renders separately
     expect(screen.queryByRole("button", { name: /share trip/i })).toBeNull();     // no edit affordances
     expect(screen.queryByText(/Refresh route/i)).toBeNull();
   });
