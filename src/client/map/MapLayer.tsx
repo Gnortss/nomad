@@ -53,7 +53,7 @@ export function MapLayer({ detail }: { detail: TripDetail }) {
         const st = markerStyle({ groupColor: groupColor(detail, p.groupId), bookingStatus: p.bookingStatus, focused, dimmed, selected });
         const flag = FLAG_STATUS[p.bookingStatus];
         return (
-          <AdvancedMarker key={p.id} position={{ lat: p.lat, lng: p.lng }} title={p.name}
+          <AdvancedMarker key={p.id} position={{ lat: p.lat, lng: p.lng }} title={p.name} zIndex={st.zIndex}
             onClick={() => { if (dayId) selectDay(dayId); selectPoint(p.id); }}>
             {/* wrapper is sized so the tail tip sits at the marker's anchor (bottom-center) */}
             <div style={{ position: "relative", width: st.size, height: st.size + 8, opacity: st.opacity, filter: st.grayscale ? `grayscale(${st.grayscale})` : "none" }}>

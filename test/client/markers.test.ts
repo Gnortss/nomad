@@ -25,4 +25,16 @@ describe("markerStyle", () => {
     const s = markerStyle({ groupColor: "#C64A3B", bookingStatus: "booked", focused: false, dimmed: true });
     expect(s).toMatchObject({ size: 26, radius: 8, casingWidth: 2, opacity: 0.32, grayscale: 0.6, badge: "none" });
   });
+
+  it("stacks overlapping markers: selected > focused day > default > dimmed", () => {
+    const z = (o: { focused: boolean; dimmed: boolean; selected?: boolean }) =>
+      markerStyle({ groupColor: "#16211F", bookingStatus: "idea", ...o }).zIndex;
+    const selected = z({ focused: true, dimmed: false, selected: true });
+    const focused = z({ focused: true, dimmed: false });
+    const dflt = z({ focused: false, dimmed: false });
+    const dimmed = z({ focused: false, dimmed: true });
+    expect(selected).toBeGreaterThan(focused);
+    expect(focused).toBeGreaterThan(dflt);
+    expect(dflt).toBeGreaterThan(dimmed);
+  });
 });

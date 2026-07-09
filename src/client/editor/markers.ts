@@ -19,5 +19,9 @@ export function markerStyle(input: { groupColor: string; bookingStatus: string; 
   const badge: "none" | "toBook" | "booked" =
     dimmed && !selected ? "none" : bookingStatus === "to_book" ? "toBook" : bookingStatus === "booked" ? "booked" : "none";
 
-  return { fill: groupColor, size, radius, iconSize, casingWidth, casingStyle, opacity, grayscale, halo, badge };
+  // Stacking for co-located stops: the selected stop wins, then the selected
+  // day's stops, then defaults; dimmed markers never cover anything.
+  const zIndex = selected ? 3 : dimmed ? 0 : focused ? 2 : 1;
+
+  return { fill: groupColor, size, radius, iconSize, casingWidth, casingStyle, opacity, grayscale, halo, badge, zIndex };
 }
