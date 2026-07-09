@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { getShare } from "../lib/api";
 import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
 import { MapCanvas } from "../map/MapCanvas";
+import { MapCamera } from "../map/MapCamera";
+import { MapLayer } from "../map/MapLayer";
+import { EditorStoreProvider } from "../state/editorStore";
 import { contour } from "../styles/ui";
-import { shareDays, type SharePayload } from "./shareModel";
+import { shareDays, shareToTripDetail, type SharePayload } from "./shareModel";
 
 // Status becomes mono words — color-coded, readable without a legend.
 const STATUS_TAG: Record<string, { word: string; color: string }> = {
@@ -25,9 +28,11 @@ export function ShareView() {
   const [payload, setPayload] = useState<SharePayload | null>(null);
   const [error, setError] = useState(false);
   useEffect(() => { getShare(token!).then((p) => setPayload(p as SharePayload)).catch(() => setError(true)); }, [token]);
+  // Memoized so MapLayer's polyline-redraw effect isn't retriggered by a fresh routes array every render.
+  const detail = useMemo(() => (payload ? shareToTripDetail(payload) : null), [payload]);
 
   if (error) return <div style={{ padding: 24 }}>This link is no longer available.</div>;
-  if (!payload) return <div className="mono" style={{ padding: 24 }}>Loading…</div>;
+  if (!payload || !detail) return <div className="mono" style={{ padding: 24 }}>Loading…</div>;
   const days = shareDays(payload);
 
   return (
@@ -44,7 +49,14 @@ export function ShareView() {
         </div>
       </header>
       <div style={{ height: "40vh", position: "relative", flex: "none" }}>
-        <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}><MapCanvas /></APIProvider>
+        <EditorStoreProvider>
+          <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
+            <MapCanvas>
+              <MapCamera detail={detail} />
+              <MapLayer detail={detail} />
+            </MapCanvas>
+          </APIProvider>
+        </EditorStoreProvider>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "14px 16px" }}>
         {days.map((d) => (
