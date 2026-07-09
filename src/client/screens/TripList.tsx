@@ -81,7 +81,7 @@ function TripCard({ trip: t }: { trip: TripListItem }) {
     <>
       <div style={{ position: "relative", borderRadius: 9, overflow: "hidden", background: "var(--basalt)" }}>
         <TripThumb points={t.points} routePolylines={t.routePolylines} seed={hashSeed(t.id)}
-          meta={`${t.daysCount ?? 0} DAYS · ${t.points.length} STOPS`} />
+          meta={`${t.daysCount ?? 0} ${t.daysCount === 1 ? "DAY" : "DAYS"} · ${t.points.length} ${t.points.length === 1 ? "STOP" : "STOPS"}`} />
       </div>
       {renaming ? (
         <TripNameEditor trip={t} onDone={() => setRenaming(false)} />
