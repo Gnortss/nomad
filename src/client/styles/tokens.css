@@ -1,12 +1,18 @@
 @import url("https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  --basalt: #1e2a2c;
-  --glacier: #ecf0f0;
+  --basalt: #16211f; /* chrome, day badges, default marker */
+  --ink: #1e2a2c; /* body text on light */
+  --glacier: #edf1ee; /* app background */
+  --panel: #f7f9f8;
+  --tray: #eef2f0;
   --slate: #57676b;
   --lupine: #5b44c9;
+  --lupine-tint: rgba(91, 68, 201, 0.08);
   --sulfur: #e39a0c;
+  --sulfur-text: #8a5c00;
   --moss: #2f7a55;
+  --brick: #b23a2e;
   --font-body: "Public Sans", system-ui, sans-serif;
   --font-display: "Overpass", sans-serif;
   --font-mono: "Overpass Mono", monospace;
@@ -23,9 +29,13 @@ body,
 }
 body {
   font-family: var(--font-body);
-  color: var(--basalt);
+  color: var(--ink);
   background: var(--glacier);
   -webkit-font-smoothing: antialiased;
+}
+a {
+  color: var(--lupine);
+  text-decoration: none;
 }
 .mono {
   font-family: var(--font-mono);
@@ -33,6 +43,19 @@ body {
 }
 .ovp {
   font-family: var(--font-display);
+}
+input,
+select,
+textarea,
+button {
+  accent-color: var(--lupine);
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--lupine) !important;
+  box-shadow: 0 0 0 3px rgba(91, 68, 201, 0.12) !important;
 }
 
 /* AI busy-state feedback */
@@ -64,4 +87,9 @@ body {
 }
 .ai-skeleton {
   animation: ai-shimmer 1.4s infinite ease-in-out;
+}
+
+@keyframes marker-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.6); opacity: 0; }
 }

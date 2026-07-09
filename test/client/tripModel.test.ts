@@ -39,8 +39,8 @@ describe("tripModel", () => {
   });
   it("groupColor falls back to Basalt when ungrouped", () => {
     expect(groupColor(detail, "g1")).toBe("#C64A3B");
-    expect(groupColor(detail, null)).toBe("#1E2A2C");
-    expect(groupColor(detail, "nope")).toBe("#1E2A2C");
+    expect(groupColor(detail, null)).toBe("#16211F");
+    expect(groupColor(detail, "nope")).toBe("#16211F");
   });
 });
 
