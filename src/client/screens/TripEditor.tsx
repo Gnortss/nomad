@@ -123,7 +123,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
             <ChatPanel tripId={detail.trip.id} />
           </div>
           <DragOverlay>
-            {activePoint && <div style={{ width: 320 }}><StopCard point={activePoint} detail={detail} /></div>}
+            {activePoint && <div style={{ width: 300 }}><StopCard point={activePoint} detail={detail} overlay /></div>}
           </DragOverlay>
         </DndContext>
         {shareOpen && <ShareDialog tripId={detail.trip.id} onClose={() => setShareOpen(false)} />}
