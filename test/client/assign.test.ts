@@ -42,6 +42,10 @@ describe("resolveDrop", () => {
   it("carries fromDayId for a cross-day move", () => {
     expect(resolveDrop("c", { id: "d1", data: { type: "day" } }, detail)).toEqual({ toDayId: "d1", toIndex: 2, fromDayId: "d2" });
   });
+  it("over the ALSO THIS DAY zone attaches off-route", () => {
+    expect(resolveDrop("x", { id: "attached:d1", data: { type: "dayAttached", dayId: "d1" } }, detail))
+      .toEqual({ toDayId: "d1", toIndex: -1, fromDayId: null, attach: true });
+  });
   it("returns null when the target is not a day or stop row", () => {
     expect(resolveDrop("x", { id: "nope" }, detail)).toBeNull();
   });

@@ -1,4 +1,4 @@
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ChevronDown, ChevronRight, Sparkles, TriangleAlert } from "lucide-react";
@@ -53,14 +53,21 @@ function AttachedStopRow({ point: p, onSelect }: { point: Point; onSelect: () =>
 }
 
 // Attached stops clustered under their group headers (day-scoped and trip-wide
-// alike, slide 04); ungrouped stops render first, plain.
-function AttachedSection({ detail, attached, onSelect }: { detail: TripDetail; attached: Point[]; onSelect: (id: string) => void }) {
+// alike, slide 04); ungrouped stops render first, plain. The whole section is a
+// drop target: landing here attaches the stop off-route.
+function AttachedSection({ detail, dayId, attached, onSelect }: { detail: TripDetail; dayId: string; attached: Point[]; onSelect: (id: string) => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `attached:${dayId}`, data: { type: "dayAttached", dayId } });
   const groups = detail.groups.filter((g) => attached.some((p) => p.groupId === g.id));
   const grouped = new Set(groups.map((g) => g.id));
   const plain = attached.filter((p) => !p.groupId || !grouped.has(p.groupId));
   return (
-    <div style={{ margin: "4px 8px 6px 44px", borderTop: "1px dashed rgba(30,42,44,.10)" }}>
+    <div ref={setNodeRef} style={{ margin: "4px 8px 6px 44px", borderTop: "1px dashed rgba(30,42,44,.10)", borderRadius: 8, outline: isOver ? "2px solid var(--lupine)" : "none", background: isOver ? "rgba(91,68,201,.07)" : "transparent" }}>
       <div className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", color: "#8FA3A0", padding: "7px 7px 2px" }}>ALSO THIS DAY</div>
+      {attached.length === 0 && (
+        <div style={{ margin: "3px 2px 5px", padding: "6px 8px", border: "1.5px dashed rgba(87,103,107,.35)", borderRadius: 8, fontSize: 11, color: "#8FA3A0" }}>
+          Drop here to keep it off the route.
+        </div>
+      )}
       {plain.map((p) => <AttachedStopRow key={p.id} point={p} onSelect={() => onSelect(p.id)} />)}
       {groups.map((g) => {
         const members = attached.filter((p) => p.groupId === g.id);
@@ -97,6 +104,9 @@ export function DayRail({ detail }: { detail: TripDetail }) {
   const { selectedDayId, selectDay, expandedDayIds, toggleDayExpanded, selectPoint, selectedPointId, openChat, aiBusy } = useEditorStore();
   const createDay = useCreateDay(detail.trip.id);
   const days = daysWithStats(detail);
+  // Mid-drag, expanded days grow an (empty) ALSO THIS DAY target so a stop can
+  // be attached off-route even when the section has no rows yet.
+  const dragging = !!useDndContext().active;
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 11 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 9px" }}>
@@ -168,8 +178,8 @@ export function DayRail({ detail }: { detail: TripDetail }) {
                       ))}
                     </div>
                   </SortableContext>
-                  {d.attached.length > 0 && (
-                    <AttachedSection detail={detail} attached={d.attached} onSelect={selectPoint} />
+                  {(d.attached.length > 0 || dragging) && (
+                    <AttachedSection detail={detail} dayId={d.id} attached={d.attached} onSelect={selectPoint} />
                   )}
                 </>
               )}

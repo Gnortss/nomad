@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
-import { getDb, days, dayStops, dayRoutes, trips } from "../db/schema";
+import { getDb, days, dayStops, dayRoutes, points, trips } from "../db/schema";
 import { rewritePositions } from "../lib/positions";
 import { reconcileDayRoutes } from "../lib/reconcile";
 import { googleRouteComputer, type RouteComputer } from "../lib/routes-google";
@@ -49,6 +49,31 @@ export function makeStopsRouter(computeOverride?: RouteComputer) {
       await db.delete(dayStops).where(inArray(dayStops.pointId, positions.map((p) => p.pointId)));
       await db.insert(dayStops).values(positions.map((p) => ({ dayId: did, pointId: p.pointId, position: p.position, inRoute: true })));
     }
+
+    const compute = computeOverride ?? googleRouteComputer(c.env.GOOGLE_ROUTES_KEY);
+    return stopsResponse(c, db, did, owner.tripId, compute);
+  });
+
+  // Attach a point to a day WITHOUT touching the route (drop into "ALSO THIS
+  // DAY"). The point leaves wherever it sat (a point never lives in two days),
+  // so any route it left reconciles on the way out.
+  r.post("/api/days/:did/stops", async (c) => {
+    const user = c.get("user");
+    if (!user) return c.json({ error: "unauthorized" }, 401);
+    const db = getDb(c.env);
+    const did = c.req.param("did");
+    const owner = await requireDay(c, db, did);
+    if (!owner) return c.json({ error: "not found" }, 404);
+
+    const { pointId } = await c.req.json<{ pointId?: string }>();
+    if (!pointId) return c.json({ error: "pointId required" }, 400);
+    const pt = (await db.select({ tripId: points.tripId }).from(points).where(eq(points.id, pointId)).limit(1))[0];
+    if (!pt || pt.tripId !== owner.tripId) return c.json({ error: "not found" }, 404);
+
+    await db.delete(dayStops).where(eq(dayStops.pointId, pointId));
+    const [{ max }] = await db.select({ max: sql<number | null>`max(${dayStops.position})` })
+      .from(dayStops).where(eq(dayStops.dayId, did));
+    await db.insert(dayStops).values({ dayId: did, pointId, position: (max ?? -1) + 1, inRoute: false });
 
     const compute = computeOverride ?? googleRouteComputer(c.env.GOOGLE_ROUTES_KEY);
     return stopsResponse(c, db, did, owner.tripId, compute);
