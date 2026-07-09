@@ -142,6 +142,8 @@ export const popover: CSSProperties = {
 
 export function dialogCard(w: number): CSSProperties {
   return {
+    // Dialogs can mount under dark chrome (TopBar) — never inherit its text color.
+    color: "var(--ink)",
     background: "#fff",
     borderRadius: 16,
     boxShadow: "0 2px 6px rgba(22,33,31,.1), 0 24px 60px rgba(22,33,31,.22)",
