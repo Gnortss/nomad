@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Link as LinkIcon, X } from "lucide-react";
+import { Check, Link as LinkIcon, X } from "lucide-react";
 import { usePatchPoint, useDeletePoint, useToggleStopRoute, useCreateGroup, usePlaceInfo } from "../lib/api";
 import { useEditorStore } from "../state/editorStore";
 import { TypeIcon } from "../components/TypeIcon";
+import { groupColor } from "../lib/tripModel";
 import { DayMenu } from "./DayMenu";
+import { sectionHead, dashedAction, iconBtn, tint, FIELD_BORDER, RULE, GROUP_HUES, btnQuietDestructive } from "../styles/ui";
 import type { TripDetail, Point } from "../lib/types";
 
 const TYPE_LABEL: Record<string, string> = { camp: "Campsite", wildcamp: "Wild camp", hostel: "Hostel", hotel: "Hotel / apartment", poi: "Point of interest", fuel: "Fuel stop", charging: "Charging stop", food: "Food", viewpoint: "Viewpoint", activity: "Activity", other: "Other" };
@@ -12,9 +14,7 @@ const STATUSES: Array<{ key: string; label: string; color: string }> = [
   { key: "to_book", label: "To book", color: "var(--sulfur)" },
   { key: "booked", label: "Booked", color: "var(--moss)" },
 ];
-const SECTION_HEAD: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, letterSpacing: ".12em", color: "var(--slate)", marginBottom: 7 };
-const FIELD_BORDER = "1px solid rgba(87,103,107,.22)";
-const GROUP_COLORS = ["#C64A3B", "#E39A0C", "#4C7A34", "#2C6E8A", "#5B44C9", "#57676B"];
+const CARD_BORDER = "1px solid rgba(30,42,44,.10)";
 
 export function DetailPanel({ detail }: { detail: TripDetail }) {
   const { selectedPointId } = useEditorStore();
@@ -34,10 +34,10 @@ function PlaceSection({ point: p }: { point: Point }) {
   const place = info?.status === "ok" ? info.place : undefined;
   return (
     <div>
-      <div className="ovp" style={SECTION_HEAD}>PLACE</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={sectionHead}>PLACE</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {place && (
-          <div style={{ padding: "9px 11px", background: "#fff", border: FIELD_BORDER, borderRadius: 7, display: "flex", flexDirection: "column", gap: 4, fontSize: 12.5 }}>
+          <div style={{ padding: "11px 13px", background: "#fff", border: CARD_BORDER, borderRadius: 10, display: "flex", flexDirection: "column", gap: 4, fontSize: 12.5, boxShadow: "0 1px 2px rgba(22,33,31,.04)" }}>
             {place.rating != null && (
               <div style={{ fontWeight: 700 }}>
                 ★ {place.rating.toFixed(1)}
@@ -46,23 +46,22 @@ function PlaceSection({ point: p }: { point: Point }) {
             )}
             {place.formattedAddress && <div style={{ color: "var(--slate)" }}>{place.formattedAddress}</div>}
             {(place.websiteUri || place.phone) && (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 1 }}>
                 {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>Website</a>}
                 {place.phone && <a href={`tel:${place.phone}`} style={{ fontWeight: 600 }}>{place.phone}</a>}
               </div>
             )}
             {place.weekdayHours.length > 0 && (
-              <details>
-                <summary style={{ cursor: "pointer", color: "var(--slate)", fontWeight: 600 }}>Opening hours</summary>
-                <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2, color: "var(--slate)" }}>
+              <details style={{ borderTop: "1px dashed rgba(30,42,44,.10)", marginTop: 4, paddingTop: 6 }}>
+                <summary style={{ cursor: "pointer", color: "var(--slate)", fontWeight: 600, fontSize: 12 }}>Opening hours</summary>
+                <div className="mono" style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 2, color: "var(--slate)", fontSize: 10.5, textTransform: "uppercase" }}>
                   {place.weekdayHours.map((h, i) => <div key={i}>{h}</div>)}
                 </div>
               </details>
             )}
           </div>
         )}
-        <a href={mapsUrl} target="_blank" rel="noreferrer"
-          style={{ alignSelf: "flex-start", padding: "5px 10px", background: "transparent", border: "1px dashed rgba(87,103,107,.35)", borderRadius: 7, fontSize: 12, fontWeight: 600, color: "var(--slate)" }}>
+        <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ ...dashedAction, alignSelf: "flex-start", color: "var(--slate)" }}>
           Open in Google Maps ↗
         </a>
       </div>
@@ -87,8 +86,11 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
   const [linkUrl, setLinkUrl] = useState("");
   const [addingGroup, setAddingGroup] = useState(false);
   const [groupName, setGroupName] = useState("");
-  const [groupHue, setGroupHue] = useState(GROUP_COLORS[0]);
+  const [groupHue, setGroupHue] = useState(GROUP_HUES[0]);
   const [groupScope, setGroupScope] = useState(""); // "" = trip-wide, else dayId
+
+  const ownGroup = p.groupId ? detail.groups.find((g) => g.id === p.groupId) : null;
+  const ownHue = groupColor(detail, p.groupId);
 
   function commitName() {
     const v = name.trim();
@@ -125,27 +127,37 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
     selectPoint(null);
   }
 
+  const fieldStyle: React.CSSProperties = { background: "#fff", border: FIELD_BORDER, borderRadius: 9, fontSize: 12.5, fontFamily: "inherit", boxShadow: "inset 0 1px 2px rgba(22,33,31,.04)" };
+
   return (
-    <aside style={{ width: 382, flex: "none", background: "#F4F6F6", borderLeft: "1px solid rgba(87,103,107,.18)", boxShadow: "-8px 0 28px rgba(30,42,44,.08)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-      <div style={{ padding: "18px 18px 16px", display: "flex", gap: 13, alignItems: "flex-start", borderBottom: "1px solid rgba(87,103,107,.16)" }}>
+    <aside style={{ width: 382, flex: "none", background: "var(--panel)", borderLeft: "1px solid rgba(30,42,44,.12)", boxShadow: "-8px 0 28px rgba(22,33,31,.08)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+      <div style={{ padding: "18px 18px 14px", display: "flex", gap: 12, alignItems: "flex-start", borderBottom: RULE }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <input value={name} onChange={(e) => setName(e.target.value)} onBlur={commitName}
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-            aria-label="Stop name"
-            style={{ width: "100%", margin: 0, padding: 0, fontSize: 18, fontWeight: 700, fontFamily: "inherit", color: "inherit", background: "transparent", border: "none", borderBottom: "1px dashed rgba(87,103,107,.35)", outline: "none" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--slate)", marginTop: 3 }}><TypeIcon type={p.type} size={13} /> {TYPE_LABEL[p.type] ?? p.type}</div>
+            aria-label="Stop name" className="ovp"
+            style={{ width: "100%", margin: 0, padding: "0 0 1px", fontSize: 19, fontWeight: 800, fontFamily: "var(--font-display)", color: "inherit", background: "transparent", border: "none", borderBottom: "1.5px dashed rgba(87,103,107,.45)", outline: "none" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--slate)", marginTop: 6 }}>
+            <TypeIcon type={p.type} size={14} /> {TYPE_LABEL[p.type] ?? p.type}
+            {ownGroup && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginLeft: 8, padding: "2px 8px", borderRadius: 14, background: ownGroup.color ? tint(ownGroup.color, 0.1) : "rgba(22,33,31,.08)", border: `1px solid ${ownGroup.color ? tint(ownGroup.color, 0.3) : "rgba(22,33,31,.2)"}`, fontSize: 10.5, fontWeight: 700, color: ownHue }}>
+                <span style={{ width: 7, height: 7, borderRadius: 2, background: ownHue }} />
+                {ownGroup.name}
+              </span>
+            )}
+          </div>
         </div>
-        <button onClick={() => selectPoint(null)} aria-label="Close details" style={{ width: 30, height: 30, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "rgba(87,103,107,.12)", borderRadius: 7, cursor: "pointer" }}><X size={15} aria-hidden /></button>
+        <button onClick={() => selectPoint(null)} aria-label="Close details" style={{ ...iconBtn(30), borderRadius: 9 }}><X size={14} aria-hidden /></button>
       </div>
-      <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ padding: "14px 18px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
         <PlaceSection point={p} />
         <div>
-          <div className="ovp" style={SECTION_HEAD}>DAY</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={sectionHead}>DAY</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <DayMenu detail={detail} pointId={p.id} />
             {stopRow && (
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
-                <input type="checkbox" checked={stopRow.inRoute}
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                <input type="checkbox" checked={stopRow.inRoute} style={{ width: 15, height: 15 }}
                   onChange={(e) => toggleRoute.mutate({ dayId: stopRow.dayId, pointId: p.id, inRoute: e.target.checked })} />
                 On route
               </label>
@@ -153,74 +165,81 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
           </div>
         </div>
         <div>
-          <div className="ovp" style={SECTION_HEAD}>TYPE</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          <div style={sectionHead}>TYPE</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {Object.keys(TYPE_LABEL).map((t) => {
               const active = p.type === t;
               return (
                 <button key={t} onClick={() => !active && patch.mutate({ id: p.id, body: { type: t } })}
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 20, border: `1px solid ${active ? "var(--lupine)" : "rgba(87,103,107,.28)"}`, background: active ? "var(--lupine)" : "#fff", color: active ? "#fff" : "var(--basalt)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
-                  <TypeIcon type={t} size={12} />{TYPE_LABEL[t]}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, fontFamily: "inherit", border: `1px solid ${active ? "var(--lupine)" : "rgba(30,42,44,.16)"}`, background: active ? "var(--lupine)" : "#fff", color: active ? "#fff" : "var(--ink)", fontSize: 11, fontWeight: active ? 700 : 600, cursor: "pointer" }}>
+                  <TypeIcon type={t} size={11} />{TYPE_LABEL[t]}
                 </button>
               );
             })}
           </div>
         </div>
         <div>
-          <div className="ovp" style={SECTION_HEAD}>GROUP</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+          <div style={sectionHead}>GROUP</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             <button onClick={() => p.groupId && patch.mutate({ id: p.id, body: { groupId: null } })}
-              style={{ padding: "4px 9px", borderRadius: 20, border: `1px solid ${!p.groupId ? "var(--lupine)" : "rgba(87,103,107,.28)"}`, background: !p.groupId ? "var(--lupine)" : "#fff", color: !p.groupId ? "#fff" : "var(--basalt)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+              style={{ padding: "4px 10px", borderRadius: 20, fontFamily: "inherit", border: `1px solid ${!p.groupId ? "var(--lupine)" : "rgba(30,42,44,.16)"}`, background: !p.groupId ? "var(--lupine)" : "#fff", color: !p.groupId ? "#fff" : "var(--ink)", fontSize: 11, fontWeight: !p.groupId ? 700 : 600, cursor: "pointer" }}>
               No group
             </button>
             {detail.groups.map((g) => {
               const active = p.groupId === g.id;
+              const hue = g.color ?? "var(--basalt)";
               const day = g.dayId ? detail.days.find((d) => d.id === g.dayId) : null;
               return (
                 <button key={g.id} onClick={() => !active && patch.mutate({ id: p.id, body: { groupId: g.id } })}
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 20, border: `1px solid ${active ? "var(--lupine)" : "rgba(87,103,107,.28)"}`, background: active ? "var(--lupine)" : "#fff", color: active ? "#fff" : "var(--basalt)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 2, background: g.color ?? "var(--basalt)" }} />
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, fontFamily: "inherit", fontSize: 11, cursor: "pointer",
+                    border: `1px solid ${active ? hue : "rgba(30,42,44,.16)"}`,
+                    background: active && g.color ? tint(g.color, 0.1) : "#fff",
+                    color: active ? hue : "var(--ink)",
+                    fontWeight: active ? 700 : 600,
+                  }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2.5, background: hue }} />
                   {g.name}{day ? ` · Day ${day.position + 1}` : ""}
                 </button>
               );
             })}
-            <button onClick={() => setAddingGroup(true)}
-              style={{ padding: "4px 9px", borderRadius: 20, border: "1px dashed rgba(87,103,107,.35)", background: "transparent", color: "var(--slate)", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={() => setAddingGroup(true)} style={{ ...dashedAction, padding: "4px 10px", borderRadius: 20, fontSize: 11 }}>
               + New group
             </button>
           </div>
           {addingGroup && (
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 7 }}>
+            <div style={{ marginTop: 10, padding: 12, background: "#fff", border: "1px solid rgba(91,68,201,.3)", borderRadius: 10, display: "flex", flexDirection: "column", gap: 8 }}>
               <input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Group name" aria-label="Group name"
-                style={{ height: 30, padding: "0 10px", fontSize: 12.5, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }} />
-              <div style={{ display: "flex", gap: 6 }}>
-                {GROUP_COLORS.map((c) => (
+                style={{ ...fieldStyle, height: 32, padding: "0 11px" }} />
+              <div style={{ display: "flex", gap: 7 }}>
+                {GROUP_HUES.map((c) => (
                   <button key={c} aria-label={`Color ${c}`} onClick={() => setGroupHue(c)}
-                    style={{ width: 22, height: 22, borderRadius: 6, background: c, border: groupHue === c ? "2px solid var(--basalt)" : "2px solid transparent", cursor: "pointer" }} />
+                    style={{ width: 24, height: 24, borderRadius: 7, background: c, border: "none", cursor: "pointer", boxShadow: groupHue === c ? "0 0 0 2px #fff, 0 0 0 4px var(--basalt)" : "none" }} />
                 ))}
               </div>
               <select value={groupScope} onChange={(e) => setGroupScope(e.target.value)} aria-label="Group scope"
-                style={{ height: 30, padding: "0 8px", fontSize: 12.5, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }}>
+                style={{ ...fieldStyle, height: 32, padding: "0 9px" }}>
                 <option value="">Trip-wide</option>
                 {[...detail.days].sort((a, b) => a.position - b.position).map((d) => (
                   <option key={d.id} value={d.id}>Day {d.position + 1}{d.title ? ` — ${d.title}` : ""}</option>
                 ))}
               </select>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={createNewGroup} style={{ height: 28, padding: "0 12px", background: "var(--basalt)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Create</button>
-                <button onClick={() => { setAddingGroup(false); setGroupName(""); setGroupScope(""); }} style={{ height: 28, padding: "0 12px", background: "rgba(87,103,107,.12)", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <div style={{ display: "flex", gap: 7 }}>
+                <button onClick={createNewGroup} style={{ height: 30, padding: "0 14px", background: "var(--basalt)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>Create</button>
+                <button onClick={() => { setAddingGroup(false); setGroupName(""); setGroupScope(""); }} style={{ height: 30, padding: "0 14px", background: "rgba(87,103,107,.10)", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: "inherit", color: "var(--ink)", cursor: "pointer" }}>Cancel</button>
               </div>
             </div>
           )}
         </div>
         <div>
-          <div className="ovp" style={SECTION_HEAD}>BOOKING</div>
-          <div style={{ display: "flex", border: "1px solid rgba(87,103,107,.28)", borderRadius: 8, overflow: "hidden" }}>
-            {STATUSES.map((s) => {
+          <div style={sectionHead}>BOOKING</div>
+          <div style={{ display: "flex", border: FIELD_BORDER, borderRadius: 9, overflow: "hidden", background: "#fff" }}>
+            {STATUSES.map((s, i) => {
               const active = p.bookingStatus === s.key;
               return (
                 <button key={s.key} onClick={() => patch.mutateAsync({ id: p.id, body: { bookingStatus: s.key } })}
-                  style={{ flex: 1, padding: "7px 4px", fontSize: 12.5, fontWeight: 600, border: "none", cursor: "pointer", background: active ? s.color : "#fff", color: active ? "#fff" : "var(--slate)" }}>
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "8px 4px", fontSize: 12.5, fontFamily: "inherit", border: "none", borderLeft: i > 0 && !active ? RULE : "none", cursor: "pointer", background: active ? s.color : "#fff", color: active ? "#fff" : "var(--slate)", fontWeight: active ? 700 : 600 }}>
+                  {active && s.key === "booked" && <Check size={10} strokeWidth={3.5} aria-hidden />}
                   {s.label}
                 </button>
               );
@@ -228,13 +247,13 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
           </div>
         </div>
         <div>
-          <div className="ovp" style={SECTION_HEAD}>EST. COST</div>
-          <div style={{ display: "flex", gap: 7 }}>
+          <div style={sectionHead}>EST. COST</div>
+          <div style={{ display: "flex", gap: 8 }}>
             <input className="mono" type="number" min="0" step="any" value={cost} onChange={(e) => setCost(e.target.value)} onBlur={() => commitCost(p.costBasis)}
               placeholder="—" aria-label="Estimated cost"
-              style={{ width: 110, height: 34, padding: "0 10px", fontSize: 14, fontWeight: 600, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }} />
+              style={{ ...fieldStyle, width: 100, height: 34, padding: "0 11px", fontSize: 14, fontWeight: 600 }} />
             <select value={p.costBasis ?? ""} onChange={(e) => commitCost(e.target.value || null)} aria-label="Cost basis"
-              style={{ flex: 1, height: 34, padding: "0 8px", fontSize: 12.5, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }}>
+              style={{ ...fieldStyle, flex: 1, height: 34, padding: "0 9px" }}>
               <option value="">total</option>
               <option value="per_night">per night</option>
               <option value="per_person">per person</option>
@@ -242,39 +261,39 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
           </div>
         </div>
         <div>
-          <div className="ovp" style={SECTION_HEAD}>NOTES</div>
+          <div style={sectionHead}>NOTES</div>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={commitNotes} placeholder="No notes yet." aria-label="Notes"
-            style={{ width: "100%", fontSize: 13, lineHeight: 1.55, fontFamily: "inherit", background: "#fff", border: FIELD_BORDER, borderRadius: 8, padding: "11px 12px", minHeight: 56, resize: "vertical" }} />
+            style={{ ...fieldStyle, width: "100%", fontSize: 12.5, lineHeight: 1.55, padding: "11px 12px", minHeight: 56, resize: "vertical", boxShadow: "none", border: "1px solid rgba(30,42,44,.12)" }} />
         </div>
         <div>
-          <div className="ovp" style={SECTION_HEAD}>LINKS</div>
+          <div style={sectionHead}>LINKS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {p.links.map((lk, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 11px", background: "#fff", border: FIELD_BORDER, borderRadius: 7 }}>
-                <a href={lk.url} target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 11px", background: "#fff", border: "1px solid rgba(30,42,44,.12)", borderRadius: 9 }}>
+                <a href={lk.url} target="_blank" rel="noreferrer" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 9, fontSize: 12.5, fontWeight: 500 }}>
                   <LinkIcon size={13} aria-hidden style={{ flex: "none", color: "var(--slate)" }} /> <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lk.label}</span>
                 </a>
-                <button onClick={() => removeLink(i)} aria-label={`Remove link ${lk.label}`} style={{ flex: "none", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", border: "none", background: "rgba(87,103,107,.12)", borderRadius: 5, cursor: "pointer" }}><X size={11} aria-hidden /></button>
+                <button onClick={() => removeLink(i)} aria-label={`Remove link ${lk.label}`} style={{ ...iconBtn(18), borderRadius: 5 }}><X size={9} aria-hidden /></button>
               </div>
             ))}
             {addingLink ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 <input value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)} placeholder="Label" aria-label="Link label"
-                  style={{ height: 30, padding: "0 10px", fontSize: 12.5, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }} />
+                  style={{ ...fieldStyle, height: 32, padding: "0 11px" }} />
                 <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://…" aria-label="Link URL"
-                  style={{ height: 30, padding: "0 10px", fontSize: 12.5, background: "#fff", border: FIELD_BORDER, borderRadius: 7 }} />
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button onClick={addLink} style={{ height: 28, padding: "0 12px", background: "var(--basalt)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Add</button>
-                  <button onClick={() => { setAddingLink(false); setLinkLabel(""); setLinkUrl(""); }} style={{ height: 28, padding: "0 12px", background: "rgba(87,103,107,.12)", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                  style={{ ...fieldStyle, height: 32, padding: "0 11px" }} />
+                <div style={{ display: "flex", gap: 7 }}>
+                  <button onClick={addLink} style={{ height: 30, padding: "0 14px", background: "var(--basalt)", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>Add</button>
+                  <button onClick={() => { setAddingLink(false); setLinkLabel(""); setLinkUrl(""); }} style={{ height: 30, padding: "0 14px", background: "rgba(87,103,107,.10)", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: "inherit", color: "var(--ink)", cursor: "pointer" }}>Cancel</button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => setAddingLink(true)} style={{ alignSelf: "flex-start", padding: "5px 10px", background: "transparent", border: "1px dashed rgba(87,103,107,.35)", borderRadius: 7, fontSize: 12, fontWeight: 600, color: "var(--slate)", cursor: "pointer" }}>+ Add link</button>
+              <button onClick={() => setAddingLink(true)} style={{ ...dashedAction, alignSelf: "flex-start" }}>+ Add link</button>
             )}
           </div>
         </div>
-        <div style={{ borderTop: "1px solid rgba(87,103,107,.16)", paddingTop: 12 }}>
-          <button onClick={onDelete} style={{ padding: "6px 0", background: "transparent", border: "none", fontSize: 12.5, fontWeight: 600, color: "#a33", cursor: "pointer" }}>Delete stop</button>
+        <div style={{ borderTop: RULE, paddingTop: 11 }}>
+          <button onClick={onDelete} style={{ ...btnQuietDestructive, fontSize: 12.5 }}>Delete stop</button>
         </div>
       </div>
     </aside>
