@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import { usePatchTrip, useDeleteTrip } from "../lib/api";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { TripSettingsDialog } from "./TripSettingsDialog";
+import { btnPrimary, btnGhostDark, contour } from "../styles/ui";
 import type { Trip } from "../lib/types";
 
-export function TopBar({ trip, stats, onShare }: { trip: Trip; stats: string; onShare: () => void }) {
+export function TopBar({ trip, stats, onShare, aiBusy = false }: { trip: Trip; stats: string; onShare: () => void; aiBusy?: boolean }) {
   const tripId = trip.id, tripName = trip.name;
   const [confirming, setConfirming] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -13,15 +15,21 @@ export function TopBar({ trip, stats, onShare }: { trip: Trip; stats: string; on
   const navigate = useNavigate();
 
   return (
-    <header style={{ height: 56, flex: "none", display: "flex", alignItems: "center", gap: 16, padding: "0 18px", background: "var(--basalt)", color: "var(--glacier)" }}>
-      <Link to="/trips" className="ovp" style={{ fontWeight: 800, letterSpacing: ".06em", fontSize: 16, color: "inherit", textDecoration: "none" }}>NOMAD</Link>
-      <span style={{ opacity: .35 }}>›</span>
+    <header style={{ height: 50, flex: "none", display: "flex", alignItems: "center", gap: 13, padding: "0 16px", background: "var(--basalt)", color: "#ECF0F0", ...contour("90% -80%") }}>
+      <span aria-hidden style={{ width: 10, height: 10, flex: "none", background: "var(--lupine)", borderRadius: 3 }} />
+      <Link to="/trips" className="ovp" style={{ fontWeight: 800, letterSpacing: ".14em", fontSize: 14, color: "inherit", textDecoration: "none" }}>NOMAD</Link>
+      <span style={{ opacity: 0.35 }}>›</span>
       <TripName key={tripName} tripId={tripId} tripName={tripName} />
-      <span className="mono" style={{ marginLeft: 20, fontSize: 12.5, color: "#aab8b7" }}>{stats}</span>
+      {aiBusy && (
+        <span role="status" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginLeft: 4, padding: "3px 10px", borderRadius: 14, background: "rgba(91,68,201,.28)", border: "1px solid rgba(122,99,232,.5)", fontSize: 10.5, fontWeight: 700, color: "#CFC5F5", whiteSpace: "nowrap" }}>
+          <Sparkles size={10} aria-hidden /> AI planning…
+        </span>
+      )}
+      <span className="mono" style={{ marginLeft: 10, fontSize: 11.5, color: "#8FA3A0", textTransform: "uppercase", whiteSpace: "nowrap" }}>{stats}</span>
       <div style={{ flex: 1 }} />
-      <button onClick={() => setSettingsOpen(true)} style={{ height: 34, padding: "0 12px", background: "transparent", color: "var(--glacier)", border: "1px solid rgba(236,240,240,.3)", borderRadius: 7, fontSize: 13.5, cursor: "pointer" }}>Settings</button>
-      <button onClick={() => setConfirming(true)} style={{ height: 34, padding: "0 12px", background: "transparent", color: "var(--glacier)", border: "1px solid rgba(236,240,240,.3)", borderRadius: 7, fontSize: 13.5, cursor: "pointer" }}>Delete trip</button>
-      <button onClick={onShare} style={{ height: 34, padding: "0 15px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 7, fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}>Share trip</button>
+      <button onClick={() => setSettingsOpen(true)} style={{ ...btnGhostDark(31), opacity: aiBusy ? 0.5 : 1 }}>Settings</button>
+      <button onClick={() => setConfirming(true)} style={btnGhostDark(31)}>Delete trip</button>
+      <button onClick={onShare} style={{ ...btnPrimary(31), padding: "0 13px", fontSize: 12, borderRadius: 8, opacity: aiBusy ? 0.5 : 1 }}>Share trip</button>
       {confirming && (
         <ConfirmDialog title={`Delete "${tripName}"?`} body="This removes the trip and all of its stops, days and routes."
           confirmLabel="Delete trip" onConfirm={() => del.mutate(tripId, { onSuccess: () => navigate("/trips") })} onCancel={() => setConfirming(false)} />
@@ -48,6 +56,6 @@ function TripName({ tripId, tripName }: { tripId: string; tripName: string }) {
     <input value={name} onChange={(e) => setName(e.target.value)} onBlur={commit}
       onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
       aria-label="Trip name"
-      style={{ width: `${Math.max(name.length + 1, 6)}ch`, maxWidth: 320, margin: 0, padding: 0, fontWeight: 600, fontSize: 14, fontFamily: "inherit", color: "inherit", background: "transparent", border: "none", borderBottom: "1px dashed rgba(230,237,236,.35)", outline: "none" }} />
+      style={{ width: `${Math.max(name.length + 1, 6)}ch`, maxWidth: 320, margin: 0, padding: "0 0 1px", fontWeight: 600, fontSize: 13.5, fontFamily: "inherit", color: "inherit", background: "transparent", border: "none", borderBottom: "1.5px dashed rgba(236,240,240,.4)", outline: "none" }} />
   );
 }

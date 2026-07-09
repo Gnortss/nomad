@@ -82,7 +82,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
-        <TopBar trip={detail.trip} stats={stats} onShare={() => setShareOpen(true)} />
+        <TopBar trip={detail.trip} stats={stats} onShare={() => setShareOpen(true)} aiBusy={aiBusy} />
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
           <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
