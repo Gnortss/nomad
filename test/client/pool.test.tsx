@@ -40,7 +40,7 @@ describe("Pool", () => {
     vi.stubGlobal("fetch", f);
     wrap(<Pool detail={detail} />);
     fireEvent.click(screen.getByRole("button", { name: /assign to day/i }));
-    fireEvent.click(screen.getByText(/Day 1 — A/, { selector: "button" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Day 1 — A/ }));
     await waitFor(() => expect(f).toHaveBeenCalled());
     expect(f.mock.calls[0][0]).toBe("/api/days/d0/stops");
     expect(JSON.parse(f.mock.calls[0][1].body as string)).toEqual({ pointIds: ["p1", "p0"] });

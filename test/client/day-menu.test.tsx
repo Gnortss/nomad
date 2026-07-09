@@ -36,7 +36,7 @@ describe("DayMenu positioning", () => {
     wrap(<DayMenu detail={detail} pointId="p0" />);
     fireEvent.click(screen.getByRole("button", { name: /assign to day/i }));
 
-    const menu = screen.getByText(/Day 1 — A/, { selector: "button" }).parentElement as HTMLElement;
+    const menu = screen.getByRole("button", { name: /Day 1 — A/ }).parentElement as HTMLElement;
     const top = parseFloat(menu.style.top);
     expect(top + 200).toBeLessThanOrEqual(window.innerHeight - 8); // fully visible, with margin
     expect(top).toBeGreaterThanOrEqual(8);

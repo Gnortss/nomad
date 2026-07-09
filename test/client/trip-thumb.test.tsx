@@ -37,20 +37,30 @@ describe("projectAll", () => {
 describe("TripThumb", () => {
   it("renders a dot per point and a path per polyline", () => {
     const { container } = render(<TripThumb points={[{ lat: 38.5, lng: -120.2 }, { lat: 40.7, lng: -120.95 }]} routePolylines={[ENC]} />);
-    expect(container.querySelectorAll("circle")).toHaveLength(2);
+    expect(container.querySelectorAll("circle[data-dot]")).toHaveLength(2);
     expect(container.querySelectorAll("path")).toHaveLength(1);
   });
 
   it("renders only the background for an empty trip", () => {
     const { container } = render(<TripThumb points={[]} routePolylines={[]} />);
     expect(container.querySelectorAll("rect")).toHaveLength(1);
-    expect(container.querySelectorAll("circle")).toHaveLength(0);
+    expect(container.querySelectorAll("circle[data-dot]")).toHaveLength(0);
     expect(container.querySelectorAll("path")).toHaveLength(0);
+  });
+
+  it("marks the last stop in sulfur and renders the meta chip", () => {
+    const { container, getByText } = render(
+      <TripThumb points={[{ lat: 38.5, lng: -120.2 }, { lat: 40.7, lng: -120.95 }]} routePolylines={[]} meta="6 DAYS · 14 STOPS" />,
+    );
+    const dots = container.querySelectorAll("circle[data-dot]");
+    expect(dots[0].getAttribute("fill")).toBe("#ECF0F0");
+    expect(dots[1].getAttribute("fill")).toBe("#E39A0C");
+    expect(getByText("6 DAYS · 14 STOPS")).toBeTruthy();
   });
 
   it("centers a single point", () => {
     const { container } = render(<TripThumb points={[{ lat: 46, lng: 14 }]} routePolylines={[]} />);
-    const c = container.querySelector("circle")!;
+    const c = container.querySelector("circle[data-dot]")!;
     expect(Number(c.getAttribute("cx"))).toBe(120);
     expect(Number(c.getAttribute("cy"))).toBe(60);
   });

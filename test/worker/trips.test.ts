@@ -86,15 +86,17 @@ describe("trips", () => {
 
     const alice = appWith("alice", tripsRouter);
     const { trips: list } = await (await call(alice, new Request("http://x/api/trips")))
-      .json<{ trips: { id: string; points: unknown[]; routePolylines: string[] }[] }>();
+      .json<{ trips: { id: string; points: unknown[]; routePolylines: string[]; daysCount: number }[] }>();
 
     expect(list.map((t) => t.id).sort()).toEqual(["t3", "t4"]);
     const t3 = list.find((t) => t.id === "t3")!;
     expect(t3.points).toEqual([{ lat: 64.15, lng: -21.94 }]); // coords only, no name/id leak
     expect(t3.routePolylines).toEqual(["enc"]);
+    expect(t3.daysCount).toBe(1); // feeds the "N DAYS · M STOPS" thumbnail chip
     const t4 = list.find((t) => t.id === "t4")!;
     expect(t4.points).toEqual([]);
     expect(t4.routePolylines).toEqual([]);
+    expect(t4.daysCount).toBe(0);
   });
 
   it("deletes a trip and cascades to its children", async () => {
