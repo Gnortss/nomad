@@ -26,6 +26,8 @@ export const deleteDay = (id: string) => req<void>(`/api/days/${id}`, { method: 
 
 export const putStops = (dayId: string, pointIds: string[]) =>
   req<{ stops: unknown[]; routes: Record<string, unknown>; routeStatus: Record<string, string> }>(`/api/days/${dayId}/stops`, { method: "PUT", body: JSON.stringify({ pointIds }) });
+export const attachStop = (dayId: string, pointId: string) =>
+  req(`/api/days/${dayId}/stops`, { method: "POST", body: JSON.stringify({ pointId }) });
 export const patchStop = (dayId: string, pointId: string, body: { inRoute: boolean }) =>
   req(`/api/days/${dayId}/stops/${pointId}`, { method: "PATCH", body: JSON.stringify(body) });
 export const deleteStop = (dayId: string, pointId: string) =>
@@ -86,6 +88,26 @@ export function useMoveStop(tripId: string) {
       v.fromDayId && v.fromDayId !== v.toDayId
         ? [{ dayId: v.fromDayId, pointIds: v.fromPointIds }, { dayId: v.toDayId, pointIds: v.toPointIds }]
         : [{ dayId: v.toDayId, pointIds: v.toPointIds }]),
+  });
+}
+// Attach a stop to a day off-route (drop into ALSO THIS DAY); the point leaves
+// wherever it sat. Optimistic so the row lands in the section instantly.
+export function useAttachStop(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { dayId: string; pointId: string }) => attachStop(v.dayId, v.pointId),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ["trip", tripId] });
+      const prev = qc.getQueryData<TripDetail>(["trip", tripId]);
+      if (prev) {
+        const kept = prev.dayStops.filter((s) => s.pointId !== v.pointId);
+        const maxPos = Math.max(-1, ...kept.filter((s) => s.dayId === v.dayId).map((s) => s.position));
+        qc.setQueryData(["trip", tripId], { ...prev, dayStops: [...kept, { dayId: v.dayId, pointId: v.pointId, position: maxPos + 1, inRoute: false }] });
+      }
+      return { prev };
+    },
+    onError: (_e: Error, _v, ctx?: { prev?: TripDetail }) => { if (ctx?.prev) qc.setQueryData(["trip", tripId], ctx.prev); },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["trip", tripId] }),
   });
 }
 // Toggle a stop between route waypoint and attached-to-day.

@@ -35,16 +35,31 @@ export function projectAll(points: LatLng[], routePolylines: string[]): { dots: 
   return { dots: points.map(toView), paths: decoded.map((line) => line.map(toView)) };
 }
 
-export function TripThumb({ points, routePolylines }: { points: LatLng[]; routePolylines: string[] }) {
+// Night-map postcard: basalt ground, faint contour rings (seeded per trip so
+// cards differ), lupine route, glacier stop dots with a sulfur last stop, and
+// an optional mono meta chip bottom-right.
+export function TripThumb({ points, routePolylines, seed = 0, meta }:
+  { points: LatLng[]; routePolylines: string[]; seed?: number; meta?: string }) {
   const { dots, paths } = projectAll(points, routePolylines);
+  const ringCx = [200, 30, 120, 240][seed % 4];
+  const ringCy = seed % 2 === 0 ? -20 : 140;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Trip map preview" style={{ display: "block", width: "100%", height: "auto", borderRadius: 6 }}>
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Trip map preview" style={{ display: "block", width: "100%", height: "auto", borderRadius: 9 }}>
       <rect width={W} height={H} fill="var(--basalt)" />
+      {[60, 90, 120].map((r, i) => (
+        <circle key={r} data-ring cx={ringCx} cy={ringCy} r={r} fill="none" stroke={`rgba(236,240,240,${0.07 - i * 0.01})`} strokeWidth={1} />
+      ))}
       {paths.map((line, i) => (
         <path key={i} d={line.map((p, j) => `${j === 0 ? "M" : "L"}${p.x} ${p.y}`).join(" ")}
-          fill="none" stroke="var(--lupine)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+          fill="none" stroke="var(--lupine)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.95} />
       ))}
-      {dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r={3} fill="var(--glacier)" />)}
+      {dots.map((d, i) => (
+        <circle key={i} data-dot cx={d.x} cy={d.y} r={i === 0 || i === dots.length - 1 ? 4 : 3}
+          fill={i === dots.length - 1 && dots.length > 1 ? "#E39A0C" : "#ECF0F0"} />
+      ))}
+      {meta && (
+        <text x={W - 8} y={H - 7} textAnchor="end" fill="#8FA3A0" fontSize={9} letterSpacing=".06em" style={{ fontFamily: "var(--font-mono)" }}>{meta}</text>
+      )}
     </svg>
   );
 }

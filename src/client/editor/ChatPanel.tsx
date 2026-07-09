@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MessageSquareText, Trash2, X } from "lucide-react";
+import { Sparkles, Trash2, TriangleAlert, X } from "lucide-react";
 import { getTripChat, streamTripChat, clearTripChat, AiUnconfiguredError, ChatBusyError, type ChatLogItem } from "../lib/aiChat";
 import { useEditorStore } from "../state/editorStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { btnPrimary, iconBtn, FIELD_BORDER, RULE } from "../styles/ui";
 
 type ThreadItem = ChatLogItem;
 
@@ -26,9 +27,13 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   const [activity, setActivity] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
+  // Sulfur dot on the collapsed pill: the assistant finished while collapsed.
+  const [unread, setUnread] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const kickoffRef = useRef(false);
+  const chatOpenRef = useRef(chatOpen);
+  chatOpenRef.current = chatOpen;
 
   // Unmount-only cleanup: the store's action identities change with its state,
   // so listing setAiBusy as a dep would re-run this cleanup mid-turn and abort
@@ -42,6 +47,9 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   useEffect(() => {
     if (chatPrefill != null) { setInput(chatPrefill); consumeChatPrefill(); }
   }, [chatPrefill, consumeChatPrefill]);
+  useEffect(() => {
+    if (chatOpen) setUnread(false);
+  }, [chatOpen]);
 
   function appendAssistantDelta(delta: string) {
     setThread((t) => {
@@ -66,6 +74,7 @@ export function ChatPanel({ tripId }: { tripId: string }) {
         onReplies: setReplies,
         onTripUpdated: () => qc.invalidateQueries({ queryKey: ["trip", tripId] }),
       }, ctrl.signal);
+      if (!chatOpenRef.current) setUnread(true);
     } catch (e) {
       if (ctrl.signal.aborted) return;
       setError(e instanceof AiUnconfiguredError ? "AI planning isn't configured on this server."
@@ -117,65 +126,77 @@ export function ChatPanel({ tripId }: { tripId: string }) {
 
   if (!chatOpen) {
     return (
-      <button onClick={() => openChat()} aria-label="Open AI chat"
-        style={{ position: "absolute", right: 14, bottom: 14, zIndex: 20, display: "flex", alignItems: "center", gap: 7, padding: "10px 14px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 22, fontWeight: 600, fontSize: 13, cursor: "pointer", boxShadow: "0 6px 20px rgba(30,42,44,.25)" }}>
-        <MessageSquareText size={15} aria-hidden /> AI planner
+      <button onClick={() => openChat()} aria-label={unread ? "Open AI chat — new reply" : "Open AI chat"}
+        style={{ position: "absolute", right: 16, bottom: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 13.5, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 8px 26px rgba(91,68,201,.45), inset 0 1px 0 rgba(255,255,255,.2)" }}>
+        <Sparkles size={15} aria-hidden /> AI planner
+        {unread && <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--sulfur)", boxShadow: "0 0 0 2px rgba(255,255,255,.6)", marginLeft: 2 }} />}
       </button>
     );
   }
 
+  const errorBusy = error?.includes("already working");
+
   return (
-    <aside aria-label="AI chat" style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#fff", borderLeft: "1px solid rgba(87,103,107,.18)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid rgba(87,103,107,.14)" }}>
-        <MessageSquareText size={15} color="var(--lupine)" aria-hidden />
-        <span style={{ flex: 1, fontWeight: 700, fontSize: 13 }}>AI planner</span>
-        <button onClick={() => setConfirmingClear(true)} aria-label="Clear chat" title="Clear chat"
-          style={{ display: "flex", width: 26, height: 26, alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: "var(--slate)", cursor: "pointer" }}><Trash2 size={14} aria-hidden /></button>
-        <button onClick={closeChat} aria-label="Collapse chat"
-          style={{ display: "flex", width: 26, height: 26, alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: "var(--slate)", cursor: "pointer" }}><X size={15} aria-hidden /></button>
+    <aside aria-label="AI chat" style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#fff", borderLeft: "1px solid rgba(30,42,44,.12)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderBottom: RULE }}>
+        <span aria-hidden style={{ width: 28, height: 28, flex: "none", borderRadius: 9, background: "rgba(91,68,201,.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Sparkles size={14} color="var(--lupine)" />
+        </span>
+        <span className="ovp" style={{ flex: 1, fontWeight: 800, fontSize: 14 }}>AI planner</span>
+        <button onClick={() => setConfirmingClear(true)} aria-label="Clear chat" title="Clear chat" style={iconBtn(28)}><Trash2 size={13} aria-hidden /></button>
+        <button onClick={closeChat} aria-label="Collapse chat" style={iconBtn(28)}><X size={14} aria-hidden /></button>
       </div>
 
-      <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 9, padding: 12 }}>
+      <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, padding: 14 }}>
         {thread.map((item, i) =>
           item.kind === "tool" ? (
-            <div key={i} className="mono" style={{ fontSize: 11, color: "var(--slate)", fontStyle: "italic", padding: "0 4px" }}>· {item.text}</div>
+            <div key={i} className="mono" style={{ fontSize: 11, color: "#8FA3A0", fontStyle: "italic", padding: "0 4px" }}>· {item.text}</div>
           ) : (
             <div key={i} style={{
               alignSelf: item.kind === "user" ? "flex-end" : "flex-start",
-              maxWidth: "88%", padding: "8px 11px", borderRadius: 10, fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.45,
-              background: item.kind === "user" ? "var(--lupine)" : "#F4F6F6",
+              maxWidth: "88%", padding: "9px 12px", fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.5,
+              borderRadius: item.kind === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+              background: item.kind === "user" ? "var(--lupine)" : "#F1F4F2",
               color: item.kind === "user" ? "#fff" : "inherit",
             }}>{item.text}</div>
           ),
         )}
         {busy && (
-          <div role="status" aria-label="Assistant is working" style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 9, maxWidth: "88%", padding: "9px 12px", borderRadius: 10, background: "rgba(91,68,201,.07)", border: "1px solid rgba(91,68,201,.18)" }}>
+          <div role="status" aria-label="Assistant is working" style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 9, maxWidth: "88%", padding: "9px 12px", borderRadius: 12, background: "rgba(91,68,201,.06)", border: "1px solid rgba(91,68,201,.18)" }}>
             <span className="ai-dots" style={{ display: "flex", gap: 3, flex: "none" }} aria-hidden><span /><span /><span /></span>
-            <span style={{ fontSize: 12, color: "var(--lupine)", fontWeight: 500, lineHeight: 1.35 }}>{activity ?? "Thinking…"}</span>
+            <span style={{ fontSize: 12, color: "var(--lupine)", fontWeight: 600, lineHeight: 1.35 }}>{activity ?? "Thinking…"}</span>
           </div>
         )}
       </div>
 
-      {error && <div style={{ fontSize: 12, color: "#a33", padding: "0 12px 6px" }}>{error}</div>}
+      {error && (
+        <div style={{ margin: "0 13px 8px", display: "flex", alignItems: "flex-start", gap: 8, padding: "8px 11px", borderRadius: 9, fontSize: 12.5, lineHeight: 1.45,
+          background: errorBusy ? "rgba(227,154,12,.09)" : "rgba(178,58,46,.07)",
+          border: errorBusy ? "1px solid rgba(227,154,12,.35)" : "1px solid rgba(178,58,46,.25)",
+          color: errorBusy ? "#8A5C00" : "#8C2D23" }}>
+          <TriangleAlert size={13} aria-hidden style={{ flex: "none", marginTop: 1 }} />
+          {error}
+        </div>
+      )}
 
       {replies.length > 0 && !busy && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 12px 8px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "0 13px 8px" }}>
           {replies.map((r) => (
             <button key={r} onClick={() => void send(r)}
-              style={{ padding: "5px 11px", background: "rgba(91,68,201,.08)", color: "var(--lupine)", border: "1px solid rgba(91,68,201,.35)", borderRadius: 15, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              style={{ padding: "5px 12px", background: "rgba(91,68,201,.06)", color: "var(--lupine)", border: "1px solid rgba(91,68,201,.35)", borderRadius: 16, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>
               {r}
             </button>
           ))}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 7, padding: "0 12px 12px" }}>
+      <div style={{ display: "flex", gap: 8, padding: "0 13px 13px" }}>
         <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={2} placeholder="Ask for changes or new days…"
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }}
           disabled={busy}
-          style={{ flex: 1, padding: "8px 10px", border: "1px solid rgba(87,103,107,.3)", borderRadius: 7, fontSize: 13, fontFamily: "inherit", resize: "none" }} />
+          style={{ flex: 1, padding: "9px 11px", border: FIELD_BORDER, borderRadius: 10, fontSize: 13, lineHeight: 1.4, fontFamily: "inherit", resize: "none", background: busy ? "var(--panel)" : "#fff", boxShadow: "inset 0 1px 2px rgba(22,33,31,.04)" }} />
         <button onClick={() => void send(input)} disabled={busy || !input.trim()}
-          style={{ padding: "0 13px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: "pointer", opacity: busy || !input.trim() ? 0.6 : 1 }}>
+          style={{ ...btnPrimary(), height: "auto", padding: "0 15px", borderRadius: 10, fontSize: 13, opacity: busy || !input.trim() ? 0.55 : 1 }}>
           Send
         </button>
       </div>

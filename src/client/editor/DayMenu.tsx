@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { useMoveStop, useUnassignStop } from "../lib/api";
 import { routeStopsForDay } from "../lib/tripModel";
+import { popover, field } from "../styles/ui";
 import type { TripDetail } from "../lib/types";
 
 // Non-drag alternative to drag-and-drop assignment: a small popover listing days.
@@ -56,21 +58,25 @@ export function DayMenu({ detail, pointId, triggerLabel, triggerStyle }: { detai
   return (
     <>
       <button ref={btnRef} onClick={toggle} aria-label="Assign to day"
-        style={triggerStyle ?? { height: 28, padding: "0 10px", background: "#fff", border: "1px solid rgba(87,103,107,.28)", borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+        style={triggerStyle ?? { ...field(34), display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
         {label}
       </button>
       {pos && (
-        <div ref={menuRef} style={{ position: "fixed", left: pos.left, top: pos.top, width: 190, zIndex: 30, background: "#fff", border: "1px solid rgba(87,103,107,.2)", borderRadius: 7, boxShadow: "0 8px 28px rgba(30,42,44,.16)", maxHeight: "calc(100vh - 16px)", overflowY: "auto" }}>
-          {days.length === 0 && <div style={{ padding: "8px 11px", fontSize: 12.5, color: "var(--slate)" }}>No days yet</div>}
-          {days.map((d) => (
-            <button key={d.id} onClick={(e) => { e.stopPropagation(); assign(d.id); }}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 11px", border: "none", background: "#fff", fontSize: 12.5, fontWeight: d.id === fromDayId ? 700 : 400, cursor: "pointer" }}>
-              Day {d.position + 1}{d.title ? ` — ${d.title}` : ""}{d.id === fromDayId ? " ✓" : ""}
-            </button>
-          ))}
+        <div ref={menuRef} style={{ ...popover, position: "fixed", left: pos.left, top: pos.top, width: 210, zIndex: 30, maxHeight: "calc(100vh - 16px)", overflowY: "auto" }}>
+          {days.length === 0 && <div style={{ padding: "8px 13px", fontSize: 12.5, color: "var(--slate)" }}>No days yet</div>}
+          {days.map((d) => {
+            const current = d.id === fromDayId;
+            return (
+              <button key={d.id} onClick={(e) => { e.stopPropagation(); assign(d.id); }}
+                style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "8px 13px", border: "none", fontFamily: "inherit", background: current ? "var(--lupine-tint)" : "#fff", fontSize: 12.5, fontWeight: current ? 700 : 500, color: current ? "var(--ink)" : "var(--slate)", cursor: "pointer" }}>
+                <span style={{ flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Day {d.position + 1}{d.title ? ` — ${d.title}` : ""}</span>
+                {current && <Check size={12} aria-hidden style={{ flex: "none", color: "var(--lupine)" }} />}
+              </button>
+            );
+          })}
           {fromDayId && (
             <button onClick={(e) => { e.stopPropagation(); unassign(); }}
-              style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 11px", border: "none", borderTop: "1px solid rgba(87,103,107,.16)", background: "#fff", fontSize: 12.5, color: "#a33", cursor: "pointer" }}>
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 13px", border: "none", borderTop: "1px solid rgba(30,42,44,.10)", background: "#fff", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "var(--brick)", cursor: "pointer" }}>
               Remove from day
             </button>
           )}

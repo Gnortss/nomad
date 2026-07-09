@@ -120,6 +120,41 @@ describe("PUT stops", () => {
     expect(rows.map((r) => r.pointId)).toEqual(["p1"]);
   });
 
+  it("POST attaches a point off-route, pulling it from wherever it sat", async () => {
+    const app = appWith("alice", makeStopsRouter(fakeComputer));
+    await call(app, new Request("http://x/api/days/d0/stops", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pointIds: ["p0", "p1"] }),
+    }));
+    const res = await call(app, new Request("http://x/api/days/d0/stops", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pointId: "p1" }),
+    }));
+    expect(res.status).toBe(200);
+    const rows = await getDb(env).select().from(dayStops).where(eq(dayStops.dayId, "d0"));
+    const p1 = rows.find((r) => r.pointId === "p1")!;
+    expect(p1.inRoute).toBe(false);           // attached, not routed
+    expect(rows.find((r) => r.pointId === "p0")!.inRoute).toBe(true); // route untouched
+    expect(rows.filter((r) => r.pointId === "p1")).toHaveLength(1);   // no duplicate rows
+  });
+
+  it("POST rejects a point from another trip and a missing pointId", async () => {
+    const now = Date.now();
+    await getDb(env).insert(trips).values({ id: "t2", userId: "alice", name: "Other", createdAt: now, updatedAt: now });
+    await getDb(env).insert(points).values({ id: "px", tripId: "t2", name: "PX", lat: 9, lng: 9, coordSource: "user", type: "poi", bookingStatus: "idea", createdAt: now });
+    const app = appWith("alice", makeStopsRouter(fakeComputer));
+    const cross = await call(app, new Request("http://x/api/days/d0/stops", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pointId: "px" }),
+    }));
+    expect(cross.status).toBe(404);
+    const missing = await call(app, new Request("http://x/api/days/d0/stops", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    }));
+    expect(missing.status).toBe(400);
+  });
+
   it("404s for a day on someone else's trip", async () => {
     const app = appWith("bob", makeStopsRouter(fakeComputer));
     const res = await call(app, new Request("http://x/api/days/d0/stops", {

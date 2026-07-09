@@ -12,6 +12,7 @@ vi.mock("../../src/client/lib/api", () => ({
     stats: { totalDistanceM: 214000, totalDurationS: 11400, totalFuel: null, perDay: {} },
   }, isPending: false }),
   useMoveStop: () => ({ mutate: vi.fn() }),
+  useAttachStop: () => ({ mutate: vi.fn() }),
   useCreatePoint: () => ({ mutate: vi.fn() }),
   usePatchTrip: () => ({ mutate: vi.fn() }),
   useDeleteTrip: () => ({ mutate: vi.fn(), isPending: false }),

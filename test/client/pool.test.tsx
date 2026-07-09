@@ -15,6 +15,7 @@ const detail: TripDetail = {
   points: [
     { id: "p0", tripId: "t1", name: "Dettifoss", lat: 1, lng: 1, type: "viewpoint", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: "g1" },
     { id: "p1", tripId: "t1", name: "Assigned", lat: 2, lng: 2, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },
+    { id: "p2", tripId: "t1", name: "Loner", lat: 3, lng: 3, type: "poi", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },
   ],
   days: [{ id: "d0", tripId: "t1", position: 0, title: "A" }],
   dayStops: [{ dayId: "d0", pointId: "p1", position: 0, inRoute: true }],  // p1 assigned, p0 pooled
@@ -35,12 +36,22 @@ describe("Pool", () => {
     expect(screen.getByRole("button", { name: /drop a pin/i })).toBeTruthy();
   });
 
+  it("filtering by group dims non-members instead of hiding them", () => {
+    wrap(<Pool detail={detail} />);
+    fireEvent.click(screen.getByRole("button", { name: /filter by backup options/i }));
+    // non-member stays in the list, just dimmed — no layout jumps
+    const loner = screen.getByText("Loner");
+    expect(loner).toBeTruthy();
+    expect(loner.closest("[data-dimmed]")).toBeTruthy();
+    expect(screen.getByText("Dettifoss").closest("[data-dimmed]")).toBeNull();
+  });
+
   it("assigns a pooled point to a day via the ＋ Day menu (appended at the end)", async () => {
     const f = vi.fn((_url: string, _init: RequestInit) => Promise.resolve(new Response(JSON.stringify({ stops: [], routes: {}, routeStatus: {} }), { status: 200 })));
     vi.stubGlobal("fetch", f);
     wrap(<Pool detail={detail} />);
-    fireEvent.click(screen.getByRole("button", { name: /assign to day/i }));
-    fireEvent.click(screen.getByText(/Day 1 — A/, { selector: "button" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /assign to day/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /^Day 1 — A/ }));
     await waitFor(() => expect(f).toHaveBeenCalled());
     expect(f.mock.calls[0][0]).toBe("/api/days/d0/stops");
     expect(JSON.parse(f.mock.calls[0][1].body as string)).toEqual({ pointIds: ["p1", "p0"] });

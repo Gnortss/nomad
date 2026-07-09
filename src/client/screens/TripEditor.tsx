@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { DndContext, DragOverlay, MeasuringStrategy, PointerSensor, pointerWithin, rectIntersection, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
-import { LoaderCircle } from "lucide-react";
-import { useTrip, useMoveStop, useCreatePoint } from "../lib/api";
+import { MapPin } from "lucide-react";
+import { useTrip, useMoveStop, useAttachStop, useCreatePoint } from "../lib/api";
 import { EditorStoreProvider, useEditorStore } from "../state/editorStore";
 import { MapCanvas } from "../map/MapCanvas";
 import { MapCamera } from "../map/MapCamera";
@@ -16,27 +16,31 @@ import { TopBar } from "../editor/TopBar";
 import { ShareDialog } from "../editor/ShareDialog";
 import { EmptyTrip } from "../editor/states";
 import { computeDrop, resolveDrop, type OverInfo } from "../editor/assign";
-import { routeStopsForDay } from "../lib/tripModel";
+import { routeStopsForDay, daysWithStats } from "../lib/tripModel";
 import { formatDistance, formatDuration } from "../lib/format";
+import { contour, BORDER } from "../styles/ui";
 import type { TripDetail } from "../lib/types";
 
-// Day containers geometrically contain their stop rows, so prioritize: stop rows
-// first (precise insertion), then day containers (append), then a rect fallback
+// Day containers geometrically contain their stop rows and the attached zone,
+// so prioritize: stop rows first (precise insertion), then the ALSO THIS DAY
+// zone (attach off-route), then day containers (append), then a rect fallback
 // for fast pointer movement.
 const collisionDetection: CollisionDetection = (args) => {
-  const stops = pointerWithin({ ...args, droppableContainers: args.droppableContainers.filter((c) => c.data.current?.type === "dayStop") });
-  if (stops.length) return stops;
-  const days = pointerWithin({ ...args, droppableContainers: args.droppableContainers.filter((c) => c.data.current?.type === "day") });
-  if (days.length) return days;
+  for (const type of ["dayStop", "dayAttached", "day"]) {
+    const hits = pointerWithin({ ...args, droppableContainers: args.droppableContainers.filter((c) => c.data.current?.type === type) });
+    if (hits.length) return hits;
+  }
   return rectIntersection(args);
 };
 
 function EditorBody({ detail }: { detail: TripDetail }) {
-  const { selectedPointId, droppingPin, cancelDropPin, selectDay, expandDay, aiBusy } = useEditorStore();
+  const { selectedPointId, selectedDayId, droppingPin, cancelDropPin, selectDay, expandDay, aiBusy } = useEditorStore();
+  const routeDays = daysWithStats(detail);
   const [shareOpen, setShareOpen] = useState(false);
   const [activePointId, setActivePointId] = useState<string | null>(null);
   const activePoint = activePointId ? detail.points.find((p) => p.id === activePointId) : undefined;
   const moveStop = useMoveStop(detail.trip.id);
+  const attachStop = useAttachStop(detail.trip.id);
   // Distance constraint so a plain click on a draggable row still fires onClick (select).
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const createPoint = useCreatePoint(detail.trip.id);
@@ -58,13 +62,18 @@ function EditorBody({ detail }: { detail: TripDetail }) {
   }
 
   // Drop: resolve target day + insertion index (stop row = insert before it, day
-  // container = append), then rewrite the affected day orders.
+  // container = append, ALSO THIS DAY zone = attach off-route), then write.
   function onDragEnd(e: DragEndEvent) {
     setActivePointId(null);
     if (!e.over) return;
     const pointId = String(e.active.id);
     const drop = resolveDrop(pointId, { id: String(e.over.id), data: e.over.data.current as OverInfo["data"] }, detail);
     if (!drop) return;
+    if (drop.attach) {
+      const already = detail.dayStops.some((s) => s.dayId === drop.toDayId && s.pointId === pointId && !s.inRoute);
+      if (!already) attachStop.mutate({ dayId: drop.toDayId, pointId });
+      return;
+    }
     const current = routeStopsForDay(detail, drop.toDayId).map((p) => p.id);
     const toPointIds = computeDrop(current, pointId, drop.toIndex);
     if (drop.fromDayId === drop.toDayId && toPointIds.join() === current.join()) return; // no-op reorder
@@ -79,10 +88,13 @@ function EditorBody({ detail }: { detail: TripDetail }) {
     cancelDropPin();
   }
 
+  // Selected-day badge docked top-left on the map (slide 08).
+  const selDay = selectedDayId ? routeDays.find((d) => d.id === selectedDayId) : undefined;
+
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
-        <TopBar trip={detail.trip} stats={stats} onShare={() => setShareOpen(true)} />
+        <TopBar trip={detail.trip} stats={stats} onShare={() => setShareOpen(true)} aiBusy={aiBusy} />
         <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
           measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
           <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
@@ -98,32 +110,47 @@ function EditorBody({ detail }: { detail: TripDetail }) {
               {detail.points.length === 0 && (
                 <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
                   {aiBusy ? (
-                    <div role="status" style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 22px", background: "rgba(255,255,255,.94)", border: "1px solid rgba(91,68,201,.3)", borderRadius: 10, boxShadow: "0 8px 28px rgba(30,42,44,.16)" }}>
-                      <LoaderCircle className="ai-spinner" size={20} color="var(--lupine)" aria-hidden />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>The AI is planning your trip…</div>
-                        <div style={{ fontSize: 12.5, color: "var(--slate)", marginTop: 2 }}>Days and stops appear on the map as they're ready — follow along in the chat.</div>
+                    <div role="status" style={{ width: 330, padding: "18px 20px", borderRadius: 14, background: "var(--basalt)", color: "#ECF0F0", boxShadow: "0 2px 6px rgba(22,33,31,.2), 0 28px 70px rgba(22,33,31,.45)", ...contour("85% -30%", 34) }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                        <span className="ai-spinner" aria-hidden style={{ width: 18, height: 18, flex: "none", border: "2.5px solid rgba(236,240,240,.2)", borderTopColor: "#8B77E0", borderRadius: "50%" }} />
+                        <span className="ovp" style={{ fontWeight: 800, fontSize: 15 }}>The AI is planning your trip…</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#B9C6C3", marginTop: 7, lineHeight: 1.5 }}>Days and stops appear on the map as they're ready — follow along in the chat.</div>
+                      <div aria-hidden style={{ height: 3, borderRadius: 2, background: "rgba(236,240,240,.14)", overflow: "hidden", position: "relative", marginTop: 13 }}>
+                        <span className="ai-skeleton" style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: "40%", borderRadius: 2, background: "#8B77E0" }} />
                       </div>
                     </div>
                   ) : (
-                    <div style={{ pointerEvents: "auto", background: "rgba(255,255,255,.92)", border: "1px solid rgba(87,103,107,.2)", borderRadius: 10, boxShadow: "0 8px 28px rgba(30,42,44,.16)" }}>
+                    <div style={{ pointerEvents: "auto", background: "rgba(255,255,255,.95)", border: BORDER, borderRadius: 11, boxShadow: "0 8px 28px rgba(22,33,31,.16)" }}>
                       <EmptyTrip />
                     </div>
                   )}
                 </div>
               )}
-              {droppingPin && (
-                <div style={{ position: "absolute", left: 16, top: 14, display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(255,255,255,.92)", border: "1px solid rgba(87,103,107,.2)", borderRadius: 8, boxShadow: "0 2px 8px rgba(30,42,44,.1)", fontSize: 12, fontWeight: 500 }}>
-                  Click the map to place a stop
-                  <button onClick={cancelDropPin} style={{ border: "none", background: "rgba(87,103,107,.14)", borderRadius: 5, padding: "2px 8px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                </div>
-              )}
+              {/* top-left dock: day badge, then status banners under it (slide 08) */}
+              <div style={{ position: "absolute", left: 14, top: 14, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, pointerEvents: "none" }}>
+                {selDay && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(255,255,255,.95)", border: BORDER, borderRadius: 10, boxShadow: "0 2px 8px rgba(22,33,31,.12)" }}>
+                    <span className="ovp" style={{ width: 20, height: 18, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--lupine)", color: "#fff", borderRadius: 6, fontWeight: 800, fontSize: 11 }}>{selDay.position + 1}</span>
+                    <span className="mono" style={{ fontSize: 11, color: "var(--ink)", textTransform: "uppercase" }}>
+                      {selDay.title ?? `Day ${selDay.position + 1}`}{selDay.distanceM != null && ` · ${formatDistance(selDay.distanceM)} · ${formatDuration(selDay.durationS!)}`}
+                    </span>
+                  </div>
+                )}
+                {droppingPin && (
+                  <div style={{ pointerEvents: "auto", display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", background: "rgba(22,33,31,.92)", color: "#ECF0F0", borderRadius: 9, boxShadow: "0 4px 14px rgba(22,33,31,.3)", fontSize: 12, fontWeight: 600 }}>
+                    <MapPin size={11} aria-hidden />
+                    Click the map to place a stop
+                    <button onClick={cancelDropPin} style={{ border: "none", background: "rgba(236,240,240,.16)", color: "#ECF0F0", borderRadius: 5, padding: "3px 8px", fontSize: 10.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>Cancel</button>
+                  </div>
+                )}
+              </div>
             </main>
             {selectedPointId && <DetailPanel detail={detail} />}
             <ChatPanel tripId={detail.trip.id} />
           </div>
           <DragOverlay>
-            {activePoint && <div style={{ width: 320 }}><StopCard point={activePoint} detail={detail} /></div>}
+            {activePoint && <div style={{ width: 300 }}><StopCard point={activePoint} detail={detail} overlay /></div>}
           </DragOverlay>
         </DndContext>
         {shareOpen && <ShareDialog tripId={detail.trip.id} onClose={() => setShareOpen(false)} />}

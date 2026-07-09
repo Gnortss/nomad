@@ -14,7 +14,7 @@ vi.mock("../../src/client/lib/aiChat", async (orig) => ({
 }));
 
 import { ChatPanel } from "../../src/client/editor/ChatPanel";
-import { EditorStoreProvider } from "../../src/client/state/editorStore";
+import { EditorStoreProvider, useEditorStore } from "../../src/client/state/editorStore";
 
 const wrap = () => render(
   <QueryClientProvider client={new QueryClient()}>
@@ -135,5 +135,29 @@ describe("ChatPanel", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Clear chat" }).at(-1)!); // dialog confirm
     await waitFor(() => expect(clearTripChat).toHaveBeenCalledWith("t1"));
     await waitFor(() => expect(screen.queryByText("old message")).toBeNull());
+  });
+
+  it("shows an unread dot when a turn finishes while collapsed; opening clears it", async () => {
+    getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: true });
+    let finishTurn!: () => void;
+    streamTripChat.mockImplementation((_id: string, _b: object, h: TripChatHandlers) =>
+      new Promise<void>((res) => { h.onText("First draft is in."); finishTurn = res; }));
+    function Harness() {
+      const { closeChat } = useEditorStore();
+      return <><button onClick={closeChat}>collapse</button><ChatPanel tripId="t1" /></>;
+    }
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <EditorStoreProvider><Harness /></EditorStoreProvider>
+      </QueryClientProvider>
+    );
+    await waitFor(() => expect(streamTripChat).toHaveBeenCalled());
+    fireEvent.click(screen.getByText("collapse"));
+    await act(async () => { finishTurn(); });
+    const pill = await screen.findByRole("button", { name: "Open AI chat — new reply" });
+    fireEvent.click(pill);
+    // reopened: the pill is gone; collapsing again shows no dot (unread cleared)
+    fireEvent.click(screen.getByRole("button", { name: "Collapse chat" }));
+    expect(screen.getByRole("button", { name: "Open AI chat" })).toBeTruthy();
   });
 });

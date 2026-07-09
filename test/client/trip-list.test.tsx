@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from "vitest";
 
 const navigate = vi.fn();
 const deleteMutate = vi.fn();
+const patchMutate = vi.fn();
 vi.mock("react-router-dom", async (orig) => ({ ...(await orig<any>()), useNavigate: () => navigate }));
 vi.mock("../../src/client/lib/api", () => ({
   useTrips: () => ({
@@ -13,6 +14,7 @@ vi.mock("../../src/client/lib/api", () => ({
   }),
   useCreateTrip: () => ({ mutateAsync: vi.fn(async () => ({ id: "t2", name: "New" })), isPending: false }),
   useDeleteTrip: () => ({ mutate: deleteMutate, isPending: false }),
+  usePatchTrip: () => ({ mutate: patchMutate, isPending: false }),
 }));
 vi.mock("../../src/client/lib/auth", () => ({ signOut: vi.fn() }));
 
@@ -50,7 +52,7 @@ describe("TripList", () => {
   it("renders a mini-map thumbnail per card", () => {
     const { container } = wrap(<TripListScreen />);
     expect(screen.getByRole("img", { name: /trip map preview/i })).toBeTruthy();
-    expect(container.querySelectorAll("circle")).toHaveLength(2);
+    expect(container.querySelectorAll("circle[data-dot]")).toHaveLength(2);
   });
 
   it("deletes a trip from the card menu after confirming", () => {
@@ -60,6 +62,17 @@ describe("TripList", () => {
     expect(screen.getByRole("dialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Delete trip" })); // confirm button in dialog
     expect(deleteMutate).toHaveBeenCalledWith("t1");
+  });
+
+  it("renames a trip from the card menu", () => {
+    patchMutate.mockClear();
+    wrap(<TripListScreen />);
+    fireEvent.click(screen.getByRole("button", { name: "Trip actions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    const input = screen.getByRole("textbox", { name: "Trip name" }) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "Iceland 2027" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(patchMutate).toHaveBeenCalledWith({ name: "Iceland 2027" });
   });
 
   it("cancel closes the dialog without deleting", () => {

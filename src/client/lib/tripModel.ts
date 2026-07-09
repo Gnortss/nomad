@@ -1,6 +1,6 @@
 import type { TripDetail, Point, Day } from "./types";
 
-const BASALT = "#1E2A2C";
+const BASALT = "#16211F";
 
 function dayPoints(detail: TripDetail, dayId: string, inRoute: boolean): Point[] {
   const byId = new Map(detail.points.map((p) => [p.id, p]));

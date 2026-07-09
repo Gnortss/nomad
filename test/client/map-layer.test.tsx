@@ -46,8 +46,8 @@ describe("MapLayer", () => {
     render(<EditorStoreProvider><Harness /></EditorStoreProvider>);
     fireEvent.click(screen.getByText("sel"));
     const pin = (name: string) => screen.getByTitle(name).firstElementChild as HTMLElement;
-    expect(pin("A").style.transform).toBe("scale(1.12)"); // route stop: focused
-    expect(pin("B").style.transform).toBe("scale(1.12)"); // attached stop: focused too
+    expect(pin("A").style.width).toBe("34px"); // route stop: focused
+    expect(pin("B").style.width).toBe("34px"); // attached stop: focused too
     expect(pin("C").style.opacity).toBe("0.32");          // pooled point: dimmed
   });
 });

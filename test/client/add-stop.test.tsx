@@ -26,9 +26,19 @@ describe("AddStop", () => {
     render(<AddStop tripId="t1" />);
     fireEvent.click(screen.getByRole("button", { name: /search a place/i }));
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "gull" } });
-    await waitFor(() => screen.getByText("Gullfoss"));
-    fireEvent.click(screen.getByText("Gullfoss"));
+    await waitFor(() => screen.getByRole("button", { name: "Gullfoss" }));
+    fireEvent.click(screen.getByRole("button", { name: "Gullfoss" }));
     await waitFor(() => expect(create).toHaveBeenCalledWith({ name: "Gullfoss", lat: 64.3, lng: -20.1, coordSource: "google", googlePlaceId: "gp1" }));
     expect(place.fetchFields).toHaveBeenCalledWith({ fields: ["id", "displayName", "location", "formattedAddress"] });
+  });
+
+  it("Enter picks the first suggestion", async () => {
+    create.mockClear();
+    render(<AddStop tripId="t1" />);
+    fireEvent.click(screen.getByRole("button", { name: /search a place/i }));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "gull" } });
+    await waitFor(() => screen.getByRole("button", { name: "Gullfoss" }));
+    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter" });
+    await waitFor(() => expect(create).toHaveBeenCalledWith({ name: "Gullfoss", lat: 64.3, lng: -20.1, coordSource: "google", googlePlaceId: "gp1" }));
   });
 });

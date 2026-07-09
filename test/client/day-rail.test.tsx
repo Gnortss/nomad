@@ -7,13 +7,17 @@ import type { TripDetail } from "../../src/client/lib/types";
 
 const detail: TripDetail = {
   trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
-  groups: [{ id: "g1", tripId: "t1", name: "Sleep options", color: "#446677", dayId: "d0" }],
+  groups: [
+    { id: "g1", tripId: "t1", name: "Sleep options", color: "#446677", dayId: "d0" },
+    { id: "g2", tripId: "t1", name: "Swim spots", color: "#4C7A34", dayId: null },
+  ],
   points: [
     { id: "p0", tripId: "t1", name: "Reykjavík", lat: 1, lng: 1, type: "camp", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "booked", groupId: null },
     { id: "p1", tripId: "t1", name: "Gullfoss", lat: 2, lng: 2, type: "viewpoint", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },
     { id: "p2", tripId: "t1", name: "Vík", lat: 3, lng: 3, type: "camp", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },
     { id: "p3", tripId: "t1", name: "Hótel Borg", lat: 4, lng: 4, type: "hotel", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "booked", groupId: "g1" },
     { id: "p4", tripId: "t1", name: "Bæjarins pylsur", lat: 5, lng: 5, type: "food", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: null },
+    { id: "p5", tripId: "t1", name: "Tolmin gorges swim", lat: 6, lng: 6, type: "activity", notes: null, links: [], estCost: null, costBasis: null, bookingStatus: "idea", groupId: "g2" },
   ],
   days: [
     { id: "d0", tripId: "t1", position: 0, title: "Golden Circle" },
@@ -22,6 +26,7 @@ const detail: TripDetail = {
   dayStops: [
     { dayId: "d0", pointId: "p0", position: 0, inRoute: true }, { dayId: "d0", pointId: "p1", position: 1, inRoute: true },
     { dayId: "d0", pointId: "p3", position: 2, inRoute: false }, { dayId: "d0", pointId: "p4", position: 3, inRoute: false },
+    { dayId: "d0", pointId: "p5", position: 4, inRoute: false },
     { dayId: "d1", pointId: "p2", position: 0, inRoute: true },
   ],
   routes: [{ dayId: "d0", polyline: "x", distanceM: 214000, durationS: 34800, waypointsHash: "h", computedAt: 0 }],
@@ -53,6 +58,16 @@ describe("DayRail", () => {
     expect(gullfossRow.textContent).toContain("END");
     const hotelRow = screen.getByText("Hótel Borg").parentElement!;
     expect(hotelRow.textContent).not.toContain("END");
+  });
+  it("clusters attached stops under trip-wide group headers too, ungrouped first", () => {
+    wrap();
+    fireEvent.click(screen.getAllByLabelText("Toggle stops")[0]);
+    expect(screen.getByText("Swim spots")).toBeTruthy(); // trip-wide group header, not just day-scoped
+    expect(screen.getByText("Tolmin gorges swim")).toBeTruthy();
+    const section = screen.getByText(/Also this day/i).parentElement!.textContent!;
+    // ungrouped rows come before any group cluster
+    expect(section.indexOf("Bæjarins pylsur")).toBeLessThan(section.indexOf("Sleep options"));
+    expect(section.indexOf("Bæjarins pylsur")).toBeLessThan(section.indexOf("Swim spots"));
   });
   it("chevron expands stops; multiple days expand independently", () => {
     wrap();

@@ -46,22 +46,25 @@ export function makeTripsRouter(computeOverride?: RouteComputer) {
     if (!user) return c.json({ error: "unauthorized" }, 401);
     const db = getDb(c.env);
     const rows = await db.select().from(trips).where(eq(trips.userId, user.id));
-    // Point coords + route polylines per trip feed the dashboard mini-map thumbnails.
+    // Point coords + route polylines per trip feed the dashboard mini-map thumbnails;
+    // day counts feed the "N DAYS · M STOPS" chip.
     const tripIds = rows.map((t) => t.id);
-    const [pts, routes] = tripIds.length
+    const [pts, routes, dayRows] = tripIds.length
       ? await Promise.all([
           db.select({ tripId: points.tripId, lat: points.lat, lng: points.lng })
             .from(points).where(inArray(points.tripId, tripIds)),
           db.select({ tripId: days.tripId, polyline: dayRoutes.polyline })
             .from(dayRoutes).innerJoin(days, eq(dayRoutes.dayId, days.id))
             .where(inArray(days.tripId, tripIds)),
+          db.select({ tripId: days.tripId }).from(days).where(inArray(days.tripId, tripIds)),
         ])
-      : [[], []];
+      : [[], [], []];
     return c.json({
       trips: rows.map((t) => ({
         ...t,
         points: pts.filter((p) => p.tripId === t.id).map((p) => ({ lat: p.lat, lng: p.lng })),
         routePolylines: routes.filter((r) => r.tripId === t.id).map((r) => r.polyline),
+        daysCount: dayRows.filter((d) => d.tripId === t.id).length,
       })),
     });
   });

@@ -48,7 +48,7 @@ describe("DetailPanel", () => {
     open();
     expect((screen.getByLabelText("Stop name") as HTMLInputElement).value).toBe("Jökulsárlón");
     expect((screen.getByLabelText("Estimated cost") as HTMLInputElement).value).toBe("59");
-    expect(screen.getByText("must-see")).toBeTruthy();
+    expect(screen.getAllByText("must-see").length).toBeGreaterThan(0); // header chip + GROUP section chip
     fireEvent.click(screen.getByRole("button", { name: /^to book$/i }));
     await waitFor(() => expect(patchAsync).toHaveBeenCalledWith({ id: "p0", body: { bookingStatus: "to_book" } }));
   });
