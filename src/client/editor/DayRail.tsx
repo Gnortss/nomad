@@ -52,19 +52,18 @@ function AttachedStopRow({ point: p, onSelect }: { point: Point; onSelect: () =>
   );
 }
 
-// Attached stops clustered under this day's groups; stops without a day-scoped
-// group render first, plain.
-function AttachedSection({ detail, dayId, attached, onSelect }: { detail: TripDetail; dayId: string; attached: Point[]; onSelect: (id: string) => void }) {
-  const dayGroups = detail.groups.filter((g) => g.dayId === dayId);
-  const grouped = new Set(dayGroups.map((g) => g.id));
+// Attached stops clustered under their group headers (day-scoped and trip-wide
+// alike, slide 04); ungrouped stops render first, plain.
+function AttachedSection({ detail, attached, onSelect }: { detail: TripDetail; attached: Point[]; onSelect: (id: string) => void }) {
+  const groups = detail.groups.filter((g) => attached.some((p) => p.groupId === g.id));
+  const grouped = new Set(groups.map((g) => g.id));
   const plain = attached.filter((p) => !p.groupId || !grouped.has(p.groupId));
   return (
     <div style={{ margin: "4px 8px 6px 44px", borderTop: "1px dashed rgba(30,42,44,.10)" }}>
       <div className="ovp" style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: ".08em", color: "#8FA3A0", padding: "7px 7px 2px" }}>ALSO THIS DAY</div>
       {plain.map((p) => <AttachedStopRow key={p.id} point={p} onSelect={() => onSelect(p.id)} />)}
-      {dayGroups.map((g) => {
+      {groups.map((g) => {
         const members = attached.filter((p) => p.groupId === g.id);
-        if (members.length === 0) return null;
         const hue = groupColor(detail, g.id);
         return (
           <div key={g.id}>
@@ -170,7 +169,7 @@ export function DayRail({ detail }: { detail: TripDetail }) {
                     </div>
                   </SortableContext>
                   {d.attached.length > 0 && (
-                    <AttachedSection detail={detail} dayId={d.id} attached={d.attached} onSelect={selectPoint} />
+                    <AttachedSection detail={detail} attached={d.attached} onSelect={selectPoint} />
                   )}
                 </>
               )}
