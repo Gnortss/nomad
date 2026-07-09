@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { shareDays, type SharePayload } from "../../src/client/share/shareModel";
+import { shareDays, shareToTripDetail, type SharePayload } from "../../src/client/share/shareModel";
 
 const payload: SharePayload = {
   trip: { name: "Iceland", startDate: "2026-07-12" },
@@ -25,5 +25,15 @@ describe("shareModel", () => {
     expect(days[0].stops.map((s) => s.name)).toEqual(["Reynisfjara", "Vík"]);
     expect(days[0].attached.map((s) => s.name)).toEqual(["Hótel Katla"]);
     expect(days[0].distanceM).toBe(187000);
+  });
+
+  it("adapts the payload to the TripDetail shape the map components render", () => {
+    const detail = shareToTripDetail(payload);
+    expect(detail.points.map((p) => p.id)).toEqual(["p0", "p1", "p2"]);
+    expect(detail.dayStops).toEqual(payload.stops);
+    // routes record becomes the DayRoute[] MapLayer looks up by dayId
+    expect(detail.routes).toEqual([{ dayId: "d0", polyline: "x", distanceM: 187000, durationS: 10500, waypointsHash: "", computedAt: 0 }]);
+    expect(detail.stats.perDay.d0).toMatchObject({ distanceM: 187000, durationS: 10500 });
+    expect(detail.trip.mapLat).toBeNull();
   });
 });

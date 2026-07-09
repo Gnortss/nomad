@@ -2,7 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("react-router-dom", async (orig) => ({ ...(await orig<any>()), useParams: () => ({ token: "tok1" }) }));
-vi.mock("@vis.gl/react-google-maps", () => ({ APIProvider: ({ children }: any) => <div>{children}</div>, Map: () => <div data-testid="map" />, useMap: () => null }));
+vi.mock("@vis.gl/react-google-maps", () => ({
+  APIProvider: ({ children }: any) => <div>{children}</div>,
+  Map: ({ children }: any) => <div data-testid="map">{children}</div>,
+  AdvancedMarker: ({ children, title }: any) => <div data-testid="marker" title={title}>{children}</div>,
+  useMap: () => null,
+}));
 const payload = {
   trip: { name: "Iceland Ring Road", startDate: "2026-07-12" }, groups: [],
   points: [
@@ -33,5 +38,11 @@ describe("ShareView", () => {
     await waitFor(() => expect(screen.getByText(/Also this day/i)).toBeTruthy());
     expect(screen.getByText("Hótel Katla")).toBeTruthy();
     expect(screen.queryByText(/2\. Hótel Katla/)).toBeNull(); // not numbered into the route
+  });
+
+  it("mounts a map marker for every shared point", async () => {
+    render(<ShareView />);
+    await waitFor(() => expect(screen.getAllByTestId("marker")).toHaveLength(2));
+    expect(screen.getAllByTestId("marker").map((m) => m.getAttribute("title"))).toEqual(["Reynisfjara", "Hótel Katla"]);
   });
 });
