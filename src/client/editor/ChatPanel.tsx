@@ -83,6 +83,9 @@ export function ChatPanel({ tripId }: { tripId: string }) {
       setError(e instanceof AiUnconfiguredError ? "AI planning isn't configured on this server."
         : e instanceof ChatBusyError ? "The assistant is already working — give it a moment."
         : e instanceof Error ? e.message : "Something went wrong");
+      // Retryable failures (overload/connection): the conversation is intact
+      // server-side, so offer a chip that continues it.
+      if (!(e instanceof AiUnconfiguredError) && !(e instanceof ChatBusyError)) setReplies(["Try again"]);
     } finally {
       setBusy(false);
       setAiBusy(false);
