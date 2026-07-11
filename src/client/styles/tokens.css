@@ -61,6 +61,18 @@ textarea:focus-visible {
   box-shadow: 0 0 0 3px rgba(91, 68, 201, 0.12) !important;
 }
 
+/* Mobile browsers zoom the page when a focused field's font is under 16px,
+   and the zoom sticks after the field closes (map "opens zoomed in", chat send
+   button pushed off-screen). Component font sizes are inline styles, so this
+   needs !important. Breakpoint matches useIsMobile. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* AI busy-state feedback */
 @keyframes ai-dot {
   0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
