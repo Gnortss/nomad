@@ -43,10 +43,12 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   // the stream. The dispatch inside the closed-over action is stable.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => { abortRef.current?.abort(); setAiBusy(false); }, []);
+  // chatOpen: the scroll container remounts when the panel reopens; busy: the
+  // "Thinking…" bubble grows the scroll area without a thread change.
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [thread, replies, activity]);
+  }, [chatOpen, thread, replies, activity, busy]);
   useEffect(() => {
     if (chatPrefill != null) { setInput(chatPrefill); consumeChatPrefill(); }
   }, [chatPrefill, consumeChatPrefill]);
