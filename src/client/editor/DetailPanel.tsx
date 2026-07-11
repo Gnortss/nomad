@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Link as LinkIcon, X } from "lucide-react";
 import { usePatchPoint, useDeletePoint, useToggleStopRoute, useCreateGroup, usePlaceInfo } from "../lib/api";
+import { useIsMobile } from "../lib/useIsMobile";
 import { useEditorStore } from "../state/editorStore";
 import { TypeIcon } from "../components/TypeIcon";
 import { groupColor } from "../lib/tripModel";
@@ -71,6 +72,7 @@ function PlaceSection({ point: p }: { point: Point }) {
 
 function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point }) {
   const { selectPoint } = useEditorStore();
+  const isMobile = useIsMobile();
   const patch = usePatchPoint(detail.trip.id);
   const del = useDeletePoint(detail.trip.id);
   const toggleRoute = useToggleStopRoute(detail.trip.id);
@@ -130,7 +132,9 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
   const fieldStyle: React.CSSProperties = { background: "#fff", border: FIELD_BORDER, borderRadius: 9, fontSize: 12.5, fontFamily: "inherit", boxShadow: "inset 0 1px 2px rgba(22,33,31,.04)" };
 
   return (
-    <aside style={{ width: 382, flex: "none", background: "var(--panel)", borderLeft: "1px solid rgba(30,42,44,.12)", boxShadow: "-8px 0 28px rgba(22,33,31,.08)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
+    <aside style={isMobile
+      ? { position: "fixed", inset: 0, zIndex: 50, background: "var(--panel)", display: "flex", flexDirection: "column", overflowY: "auto" }
+      : { width: 382, flex: "none", background: "var(--panel)", borderLeft: "1px solid rgba(30,42,44,.12)", boxShadow: "-8px 0 28px rgba(22,33,31,.08)", display: "flex", flexDirection: "column", overflowY: "auto" }}>
       <div style={{ padding: "18px 18px 14px", display: "flex", gap: 12, alignItems: "flex-start", borderBottom: RULE }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <input value={name} onChange={(e) => setName(e.target.value)} onBlur={commitName}

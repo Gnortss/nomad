@@ -4,6 +4,9 @@ import { EditorStoreProvider, useEditorStore } from "../../src/client/state/edit
 import { DetailPanel } from "../../src/client/editor/DetailPanel";
 import type { TripDetail, PlaceInfo } from "../../src/client/lib/types";
 
+let isMobile = false;
+vi.mock("../../src/client/lib/useIsMobile", () => ({ useIsMobile: () => isMobile }));
+
 const patch = vi.fn(async () => ({}));
 const patchAsync = vi.fn(async () => ({}));
 const delPoint = vi.fn(async () => ({}));
@@ -51,6 +54,15 @@ describe("DetailPanel", () => {
     expect(screen.getAllByText("must-see").length).toBeGreaterThan(0); // header chip + GROUP section chip
     fireEvent.click(screen.getByRole("button", { name: /^to book$/i }));
     await waitFor(() => expect(patchAsync).toHaveBeenCalledWith({ id: "p0", body: { bookingStatus: "to_book" } }));
+  });
+
+  it("renders as a full-screen overlay on mobile", () => {
+    isMobile = true;
+    open();
+    const aside = screen.getByLabelText("Stop name").closest("aside")!;
+    expect(aside.style.position).toBe("fixed");
+    expect(aside.style.width).toBe("");
+    isMobile = false;
   });
 
   it("commits an edited name on blur", () => {
