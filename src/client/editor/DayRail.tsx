@@ -6,6 +6,7 @@ import { daysWithStats, groupColor } from "../lib/tripModel";
 import { formatDistance, formatDuration, endpointLabel } from "../lib/format";
 import { TypeIcon } from "../components/TypeIcon";
 import { useEditorStore } from "../state/editorStore";
+import { useIsMobile } from "../lib/useIsMobile";
 import { useCreateDay } from "../lib/api";
 import { btnSecondary } from "../styles/ui";
 import type { TripDetail, Point } from "../lib/types";
@@ -107,8 +108,11 @@ export function DayRail({ detail }: { detail: TripDetail }) {
   // Mid-drag, expanded days grow an (empty) ALSO THIS DAY target so a stop can
   // be attached off-route even when the section has no rows yet.
   const dragging = !!useDndContext().active;
+  const isMobile = useIsMobile();
+  // On mobile the collapsed AI-planner pill floats over the sheet's bottom-right
+  // corner; the extra scroll room lets the last day clear it.
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 11 }}>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 11, paddingBottom: isMobile ? 64 : 11 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 9px" }}>
         <span className="ovp" style={{ fontWeight: 700, fontSize: 11, letterSpacing: ".14em", color: "var(--slate)" }}>
           DAYS {days.length > 0 && <span className="mono" style={{ fontWeight: 400, letterSpacing: 0, fontSize: 10 }}>· {days.length}</span>}

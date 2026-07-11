@@ -197,7 +197,7 @@ describe("ChatPanel", () => {
     getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: false });
     wrap(false);
     const pill = screen.getByRole("button", { name: "Open AI chat" });
-    expect(pill.style.bottom).toBe("108px"); // PEEK_PX + 12
+    expect(pill.style.bottom).toBe("100px"); // PEEK_PX + 4
     isMobile = false;
   });
 });

@@ -135,7 +135,7 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   if (!chatOpen) {
     return (
       <button onClick={() => openChat()} aria-label={unread ? "Open AI chat — new reply" : "Open AI chat"}
-        style={{ position: "absolute", right: 16, bottom: isMobile ? PEEK_PX + 12 : 16, zIndex: isMobile ? 30 : 20, display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 13.5, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 8px 26px rgba(91,68,201,.45), inset 0 1px 0 rgba(255,255,255,.2)" }}>
+        style={{ position: "absolute", right: 16, bottom: isMobile ? PEEK_PX + 4 : 16, zIndex: isMobile ? 30 : 20, display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 13.5, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 8px 26px rgba(91,68,201,.45), inset 0 1px 0 rgba(255,255,255,.2)" }}>
         <Sparkles size={15} aria-hidden /> AI planner
         {unread && <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--sulfur)", boxShadow: "0 0 0 2px rgba(255,255,255,.6)", marginLeft: 2 }} />}
       </button>
