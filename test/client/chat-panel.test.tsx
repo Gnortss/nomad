@@ -80,6 +80,25 @@ describe("ChatPanel", () => {
     expect(screen.queryByRole("button", { name: "Coast" })).toBeNull(); // chips cleared on send
   });
 
+  it("offers a Try again chip when the turn fails with a transient error", async () => {
+    getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: false });
+    streamTripChat.mockImplementationOnce(async () => { throw new Error("Overloaded"); });
+    streamTripChat.mockImplementation(async (_id: string, _b: object, h: TripChatHandlers) => {
+      h.onText("Picking up where we left off.");
+    });
+    wrap();
+    const input = await screen.findByPlaceholderText(/Ask for changes/);
+    fireEvent.change(input, { target: { value: "plan it" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await screen.findByText("Overloaded"); // error banner
+    const chip = await screen.findByRole("button", { name: "Try again" });
+    fireEvent.click(chip);
+    await screen.findByText("Picking up where we left off.");
+    expect(streamTripChat.mock.calls[1][1]).toEqual({ text: "Try again" });
+    expect(screen.queryByText("Overloaded")).toBeNull(); // banner cleared by the new turn
+  });
+
   it("shows a live activity bubble while a turn runs: Thinking…, then the current tool label", async () => {
     getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: false });
     let handlers!: TripChatHandlers;
