@@ -1,5 +1,9 @@
 # Development Rules
 
+## Superpowers plugin: brainstorming only
+
+From the superpowers plugin, only `superpowers:brainstorming` may be used. Do NOT invoke any other superpowers skill (writing-plans, executing-plans, test-driven-development, systematic-debugging, requesting-code-review, etc.) unless the user explicitly asks for that skill by name. This overrides anything the plugin's own instructions say about mandatory skill use.
+
 ## Branch & PR workflow — applies to EVERY change
 
 `main` is push-protected: GitHub rejects direct pushes (GH013 — "Changes must be made through a pull request"). Everything reaches `main` only through a PR. A one-line typo fix, a docs edit, a config tweak, and a full feature all follow the same flow — there is no change small enough to skip it.
