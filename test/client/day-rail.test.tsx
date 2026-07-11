@@ -1,9 +1,12 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { EditorStoreProvider } from "../../src/client/state/editorStore";
 import { DayRail } from "../../src/client/editor/DayRail";
 import type { TripDetail } from "../../src/client/lib/types";
+
+let isMobile = false;
+vi.mock("../../src/client/lib/useIsMobile", () => ({ useIsMobile: () => isMobile }));
 
 const detail: TripDetail = {
   trip: { id: "t1", name: "I", currency: "EUR", startDate: null, fuelLPer100km: null, fuelPricePerL: null, vehicle: "car" as const, evRangeKm: null, avoidTolls: false, allowFerries: true, mapLat: null, mapLng: null },
@@ -68,6 +71,12 @@ describe("DayRail", () => {
     // ungrouped rows come before any group cluster
     expect(section.indexOf("Bæjarins pylsur")).toBeLessThan(section.indexOf("Sleep options"));
     expect(section.indexOf("Bæjarins pylsur")).toBeLessThan(section.indexOf("Swim spots"));
+  });
+  it("leaves scroll room under the floating AI pill on mobile", () => {
+    isMobile = true;
+    const { container } = wrap();
+    expect((container.firstElementChild as HTMLElement).style.paddingBottom).toBe("64px");
+    isMobile = false;
   });
   it("chevron expands stops; multiple days expand independently", () => {
     wrap();
