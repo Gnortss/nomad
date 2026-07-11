@@ -36,7 +36,9 @@ export function BottomSheet({ header, children }: { header?: React.ReactNode; ch
 
   function onPointerDown(e: React.PointerEvent) {
     drag.current = { startY: e.clientY, startH: visible };
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId); // jsdom lacks pointer capture
+    // Keep the drag when the finger leaves the handle. Throws on synthetic
+    // events (no active pointer) and is missing in jsdom — never fatal.
+    try { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* ignore */ }
   }
   function onPointerMove(e: React.PointerEvent) {
     if (!drag.current) return;
