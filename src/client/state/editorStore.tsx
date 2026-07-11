@@ -46,8 +46,8 @@ type Store = State & {
 };
 const Ctx = createContext<Store | null>(null);
 
-export function EditorStoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { selectedDayId: null, expandedDayIds: new Set<string>(), selectedPointId: null, droppingPin: false, chatOpen: true, chatPrefill: null, aiBusy: false });
+export function EditorStoreProvider({ children, initialChatOpen = true }: { children: React.ReactNode; initialChatOpen?: boolean }) {
+  const [state, dispatch] = useReducer(reducer, { selectedDayId: null, expandedDayIds: new Set<string>(), selectedPointId: null, droppingPin: false, chatOpen: initialChatOpen, chatPrefill: null, aiBusy: false });
   const value = useMemo<Store>(() => ({
     ...state,
     selectDay: (id) => dispatch({ t: "selectDay", id }),

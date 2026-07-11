@@ -16,9 +16,12 @@ vi.mock("../../src/client/lib/aiChat", async (orig) => ({
 import { ChatPanel } from "../../src/client/editor/ChatPanel";
 import { EditorStoreProvider, useEditorStore } from "../../src/client/state/editorStore";
 
-const wrap = () => render(
+let isMobile = false;
+vi.mock("../../src/client/lib/useIsMobile", () => ({ useIsMobile: () => isMobile }));
+
+const wrap = (initialChatOpen = true) => render(
   <QueryClientProvider client={new QueryClient()}>
-    <EditorStoreProvider>
+    <EditorStoreProvider initialChatOpen={initialChatOpen}>
       <ChatPanel tripId="t1" />
     </EditorStoreProvider>
   </QueryClientProvider>
@@ -159,5 +162,23 @@ describe("ChatPanel", () => {
     // reopened: the pill is gone; collapsing again shows no dot (unread cleared)
     fireEvent.click(screen.getByRole("button", { name: "Collapse chat" }));
     expect(screen.getByRole("button", { name: "Open AI chat" })).toBeTruthy();
+  });
+
+  it("expands to a full-screen overlay on mobile", async () => {
+    isMobile = true;
+    getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: false });
+    wrap();
+    const aside = screen.getByLabelText("AI chat");
+    expect(aside.style.position).toBe("fixed");
+    isMobile = false;
+  });
+
+  it("floats the collapsed pill above the sheet peek on mobile", async () => {
+    isMobile = true;
+    getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: false });
+    wrap(false);
+    const pill = screen.getByRole("button", { name: "Open AI chat" });
+    expect(pill.style.bottom).toBe("108px"); // PEEK_PX + 12
+    isMobile = false;
   });
 });

@@ -4,6 +4,8 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("react-router-dom", async (orig) => ({ ...(await orig<any>()), useParams: () => ({ id: "t1" }) }));
+let isMobile = false;
+vi.mock("../../src/client/lib/useIsMobile", () => ({ useIsMobile: () => isMobile }));
 vi.mock("@vis.gl/react-google-maps", () => ({ APIProvider: ({ children }: any) => <div>{children}</div>, Map: () => <div data-testid="map" /> }));
 vi.mock("../../src/client/lib/api", () => ({
   useTrip: () => ({ data: {
@@ -31,5 +33,16 @@ describe("TripEditor layout", () => {
     expect(screen.getByTestId("rail")).toBeTruthy();
     expect(screen.getByDisplayValue("Iceland")).toBeTruthy(); // trip name is now an inline-edit input
     expect(screen.getByText(/214 km/)).toBeTruthy();
+  });
+
+  it("renders the mobile layout: map + bottom sheet with rail, pool and stats", () => {
+    isMobile = true;
+    render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><TripEditorScreen /></MemoryRouter></QueryClientProvider>);
+    expect(screen.getAllByTestId("map")).toHaveLength(1);
+    expect(screen.getByLabelText("Resize day list")).toBeTruthy(); // BottomSheet handle
+    expect(screen.getByTestId("rail")).toBeTruthy();
+    expect(screen.getByTestId("pool")).toBeTruthy();
+    expect(screen.getByText(/214 km/)).toBeTruthy(); // stats in the sheet header
+    isMobile = false;
   });
 });

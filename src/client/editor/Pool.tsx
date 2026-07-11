@@ -106,7 +106,7 @@ function PoolRow({ point, detail, dimmed, onSelect }: { point: Point; detail: Tr
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: point.id, data: { type: "poolPoint" } });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect} data-dimmed={dimmed || undefined}
-      style={{ display: "flex", flexDirection: "column", cursor: "grab", opacity: isDragging ? 0.35 : dimmed ? 0.45 : 1 }}>
+      style={{ display: "flex", flexDirection: "column", cursor: "grab", opacity: isDragging ? 0.35 : dimmed ? 0.45 : 1, touchAction: "manipulation" }}>
       <StopCard point={point} detail={detail}
         trailing={<DayMenu detail={detail} pointId={point.id} triggerLabel="＋ Day" triggerStyle={{ height: 24, padding: "0 9px", flex: "none", background: "var(--panel)", border: "1px solid rgba(30,42,44,.16)", borderRadius: 7, fontSize: 10.5, fontWeight: 700, color: "var(--slate)", fontFamily: "inherit", cursor: "pointer" }} />} />
     </div>

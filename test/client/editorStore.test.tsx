@@ -44,6 +44,13 @@ describe("editorStore", () => {
     expect(result.current.expandedDayIds.size).toBe(1);
   });
 
+  it("starts with the chat closed when initialChatOpen is false", () => {
+    const { result } = renderHook(() => useEditorStore(), {
+      wrapper: ({ children }) => <EditorStoreProvider initialChatOpen={false}>{children}</EditorStoreProvider>,
+    });
+    expect(result.current.chatOpen).toBe(false);
+  });
+
   it("drop-pin mode starts and cancels", () => {
     const { result } = renderHook(() => useEditorStore(), { wrapper });
     expect(result.current.droppingPin).toBe(false);

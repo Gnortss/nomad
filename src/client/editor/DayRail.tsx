@@ -27,7 +27,7 @@ function DayStopRow({ point: p, dayId, index, count, selected, onSelect }: { poi
   const showLine = over?.id === p.id && !!active && active.id !== p.id && active.data.current?.dayId !== dayId;
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect}
-      style={{ position: "relative", transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1, display: "flex", alignItems: "center", gap: 9, padding: "5px 7px", borderRadius: 8, background: selected ? "var(--lupine-tint)" : "transparent", textAlign: "left", cursor: "grab" }}>
+      style={{ position: "relative", transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1, display: "flex", alignItems: "center", gap: 9, padding: "5px 7px", borderRadius: 8, background: selected ? "var(--lupine-tint)" : "transparent", textAlign: "left", cursor: "grab", touchAction: "manipulation" }}>
       {showLine && (
         <span aria-hidden>
           <span style={{ position: "absolute", left: 2, right: 8, top: -2, height: 3, borderRadius: 2, background: "var(--lupine)" }} />

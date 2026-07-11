@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { APIProvider } from "@vis.gl/react-google-maps";
-import { DndContext, DragOverlay, MeasuringStrategy, PointerSensor, pointerWithin, rectIntersection, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, MeasuringStrategy, MouseSensor, TouchSensor, pointerWithin, rectIntersection, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
 import { MapPin } from "lucide-react";
 import { useTrip, useMoveStop, useAttachStop, useCreatePoint } from "../lib/api";
 import { EditorStoreProvider, useEditorStore } from "../state/editorStore";
+import { useIsMobile } from "../lib/useIsMobile";
+import { BottomSheet } from "../components/BottomSheet";
 import { MapCanvas } from "../map/MapCanvas";
 import { MapCamera } from "../map/MapCamera";
 import { MapLayer } from "../map/MapLayer";
@@ -35,14 +37,20 @@ const collisionDetection: CollisionDetection = (args) => {
 
 function EditorBody({ detail }: { detail: TripDetail }) {
   const { selectedPointId, selectedDayId, droppingPin, cancelDropPin, selectDay, expandDay, aiBusy } = useEditorStore();
+  const isMobile = useIsMobile();
   const routeDays = daysWithStats(detail);
   const [shareOpen, setShareOpen] = useState(false);
   const [activePointId, setActivePointId] = useState<string | null>(null);
   const activePoint = activePointId ? detail.points.find((p) => p.id === activePointId) : undefined;
   const moveStop = useMoveStop(detail.trip.id);
   const attachStop = useAttachStop(detail.trip.id);
-  // Distance constraint so a plain click on a draggable row still fires onClick (select).
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  // MouseSensor keeps the click-vs-drag distance rule; TouchSensor activates on
+  // long-press so touch scrolling in the sheet never starts a drag.
+  // (PointerSensor treated touch like mouse and hijacked scroll gestures.)
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
+  );
   const createPoint = useCreatePoint(detail.trip.id);
   const s = detail.stats;
   // Fuel-cost stat is meaningless for an EV (it's computed from l/100km).
@@ -91,18 +99,10 @@ function EditorBody({ detail }: { detail: TripDetail }) {
   // Selected-day badge docked top-left on the map (slide 08).
   const selDay = selectedDayId ? routeDays.find((d) => d.id === selectedDayId) : undefined;
 
-  return (
-    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
-      <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
-        <TopBar trip={detail.trip} stats={stats} onShare={() => setShareOpen(true)} aiBusy={aiBusy} />
-        <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
-          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
-          <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
-            <aside style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#F4F6F6", borderRight: "1px solid rgba(87,103,107,.18)" }}>
-              <DayRail detail={detail} />
-              <Pool detail={detail} />
-            </aside>
-            <main style={{ flex: 1, position: "relative", minWidth: 0, cursor: droppingPin ? "crosshair" : "auto" }}>
+  // The map <main> is identical in both layouts; on mobile it's the only flex
+  // child (fills the row) with the sheet and panels overlaid on top.
+  const mapMain = (
+    <main style={{ flex: 1, position: "relative", minWidth: 0, cursor: droppingPin ? "crosshair" : "auto" }}>
               <MapCanvas onMapClick={onMapClick}>
                 <MapCamera detail={detail} />
                 <MapLayer detail={detail} />
@@ -145,10 +145,38 @@ function EditorBody({ detail }: { detail: TripDetail }) {
                   </div>
                 )}
               </div>
-            </main>
-            {selectedPointId && <DetailPanel detail={detail} />}
-            <ChatPanel tripId={detail.trip.id} />
-          </div>
+    </main>
+  );
+
+  return (
+    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY}>
+      <div style={{ height: "100%", display: "flex", flexDirection: "column", background: "var(--glacier)" }}>
+        <TopBar trip={detail.trip} stats={stats} onShare={() => setShareOpen(true)} aiBusy={aiBusy} />
+        <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setActivePointId(null)}
+          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
+          {isMobile ? (
+            <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
+              {mapMain}
+              <BottomSheet header={
+                <div className="mono" style={{ textAlign: "center", fontSize: 10.5, color: "var(--slate)", textTransform: "uppercase", paddingTop: 5 }}>{stats}</div>
+              }>
+                <DayRail detail={detail} />
+                <Pool detail={detail} />
+              </BottomSheet>
+              {selectedPointId && <DetailPanel detail={detail} />}
+              <ChatPanel tripId={detail.trip.id} />
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
+              <aside style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#F4F6F6", borderRight: "1px solid rgba(87,103,107,.18)" }}>
+                <DayRail detail={detail} />
+                <Pool detail={detail} />
+              </aside>
+              {mapMain}
+              {selectedPointId && <DetailPanel detail={detail} />}
+              <ChatPanel tripId={detail.trip.id} />
+            </div>
+          )}
           <DragOverlay>
             {activePoint && <div style={{ width: 300 }}><StopCard point={activePoint} detail={detail} overlay /></div>}
           </DragOverlay>
@@ -162,6 +190,7 @@ function EditorBody({ detail }: { detail: TripDetail }) {
 export function TripEditorScreen() {
   const { id } = useParams();
   const { data, isPending } = useTrip(id!);
+  const isMobile = useIsMobile(); // chat starts collapsed on mobile — open it would cover the map
   if (isPending || !data) return <div className="mono" style={{ height: "100%", display: "grid", placeItems: "center" }}>Loading…</div>;
-  return <EditorStoreProvider><EditorBody detail={data} /></EditorStoreProvider>;
+  return <EditorStoreProvider initialChatOpen={!isMobile}><EditorBody detail={data} /></EditorStoreProvider>;
 }

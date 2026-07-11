@@ -4,6 +4,8 @@ import { Sparkles, Trash2, TriangleAlert, X } from "lucide-react";
 import { getTripChat, streamTripChat, clearTripChat, AiUnconfiguredError, ChatBusyError, type ChatLogItem } from "../lib/aiChat";
 import { useEditorStore } from "../state/editorStore";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { PEEK_PX } from "../components/BottomSheet";
+import { useIsMobile } from "../lib/useIsMobile";
 import { btnPrimary, iconBtn, FIELD_BORDER, RULE } from "../styles/ui";
 
 type ThreadItem = ChatLogItem;
@@ -19,6 +21,7 @@ const INTRO: ThreadItem = {
 export function ChatPanel({ tripId }: { tripId: string }) {
   const qc = useQueryClient();
   const { chatOpen, closeChat, openChat, chatPrefill, consumeChatPrefill, setAiBusy } = useEditorStore();
+  const isMobile = useIsMobile();
   const [thread, setThread] = useState<ThreadItem[]>([]);
   const [replies, setReplies] = useState<string[]>([]);
   const [input, setInput] = useState("");
@@ -127,7 +130,7 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   if (!chatOpen) {
     return (
       <button onClick={() => openChat()} aria-label={unread ? "Open AI chat — new reply" : "Open AI chat"}
-        style={{ position: "absolute", right: 16, bottom: 16, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 13.5, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 8px 26px rgba(91,68,201,.45), inset 0 1px 0 rgba(255,255,255,.2)" }}>
+        style={{ position: "absolute", right: 16, bottom: isMobile ? PEEK_PX + 12 : 16, zIndex: isMobile ? 30 : 20, display: "flex", alignItems: "center", gap: 8, padding: "11px 16px", background: "var(--lupine)", color: "#fff", border: "none", borderRadius: 24, fontWeight: 700, fontSize: 13.5, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 8px 26px rgba(91,68,201,.45), inset 0 1px 0 rgba(255,255,255,.2)" }}>
         <Sparkles size={15} aria-hidden /> AI planner
         {unread && <span aria-hidden style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--sulfur)", boxShadow: "0 0 0 2px rgba(255,255,255,.6)", marginLeft: 2 }} />}
       </button>
@@ -137,7 +140,9 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   const errorBusy = error?.includes("already working");
 
   return (
-    <aside aria-label="AI chat" style={{ width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#fff", borderLeft: "1px solid rgba(30,42,44,.12)" }}>
+    <aside aria-label="AI chat" style={isMobile
+      ? { position: "fixed", inset: 0, zIndex: 55, display: "flex", flexDirection: "column", background: "#fff" }
+      : { width: 344, flex: "none", display: "flex", flexDirection: "column", background: "#fff", borderLeft: "1px solid rgba(30,42,44,.12)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px", borderBottom: RULE }}>
         <span aria-hidden style={{ width: 28, height: 28, flex: "none", borderRadius: 9, background: "rgba(91,68,201,.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Sparkles size={14} color="var(--lupine)" />

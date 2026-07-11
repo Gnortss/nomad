@@ -27,6 +27,9 @@ body,
   margin: 0;
   height: 100%;
 }
+#root {
+  height: 100dvh; /* mobile URL bar; == 100% on desktop */
+}
 body {
   font-family: var(--font-body);
   color: var(--ink);
