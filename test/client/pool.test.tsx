@@ -46,6 +46,21 @@ describe("Pool", () => {
     expect(screen.getByText("Dettifoss").closest("[data-dimmed]")).toBeNull();
   });
 
+  it("read-only: hides add buttons, day menu, and drag hint; rows still listed", () => {
+    render(<QueryClientProvider client={new QueryClient()}><EditorStoreProvider readOnly><Pool detail={detail} /></EditorStoreProvider></QueryClientProvider>);
+    expect(screen.getByText("Dettifoss")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /search a place/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /drop a pin/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /assign to day/i })).toBeNull();
+    expect(screen.queryByText(/DRAG →/)).toBeNull();
+  });
+
+  it("read-only with nothing unassigned renders no tray at all", () => {
+    const allAssigned = { ...detail, dayStops: detail.points.map((p, i) => ({ dayId: "d0", pointId: p.id, position: i, inRoute: true })) };
+    const { container } = render(<QueryClientProvider client={new QueryClient()}><EditorStoreProvider readOnly><Pool detail={allAssigned} /></EditorStoreProvider></QueryClientProvider>);
+    expect(container.innerHTML).toBe("");
+  });
+
   it("assigns a pooled point to a day via the ＋ Day menu (appended at the end)", async () => {
     const f = vi.fn((_url: string, _init: RequestInit) => Promise.resolve(new Response(JSON.stringify({ stops: [], routes: {}, routeStatus: {} }), { status: 200 })));
     vi.stubGlobal("fetch", f);

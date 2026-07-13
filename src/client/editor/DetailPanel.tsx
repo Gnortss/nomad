@@ -3,19 +3,18 @@ import { Check, Link as LinkIcon, X } from "lucide-react";
 import { usePatchPoint, useDeletePoint, useToggleStopRoute, useCreateGroup, usePlaceInfo } from "../lib/api";
 import { useIsMobile } from "../lib/useIsMobile";
 import { useEditorStore } from "../state/editorStore";
-import { TypeIcon } from "../components/TypeIcon";
+import { TypeIcon, TYPE_LABEL } from "../components/TypeIcon";
+import { PlaceSection } from "../components/PlaceSection";
 import { groupColor } from "../lib/tripModel";
 import { DayMenu } from "./DayMenu";
 import { sectionHead, dashedAction, iconBtn, tint, FIELD_BORDER, RULE, GROUP_HUES, btnQuietDestructive } from "../styles/ui";
 import type { TripDetail, Point } from "../lib/types";
 
-const TYPE_LABEL: Record<string, string> = { camp: "Campsite", wildcamp: "Wild camp", hostel: "Hostel", hotel: "Hotel / apartment", poi: "Point of interest", fuel: "Fuel stop", charging: "Charging stop", food: "Food", viewpoint: "Viewpoint", activity: "Activity", other: "Other" };
 const STATUSES: Array<{ key: string; label: string; color: string }> = [
   { key: "idea", label: "Idea", color: "var(--slate)" },
   { key: "to_book", label: "To book", color: "var(--sulfur)" },
   { key: "booked", label: "Booked", color: "var(--moss)" },
 ];
-const CARD_BORDER = "1px solid rgba(30,42,44,.10)";
 
 export function DetailPanel({ detail }: { detail: TripDetail }) {
   const { selectedPointId } = useEditorStore();
@@ -25,53 +24,9 @@ export function DetailPanel({ detail }: { detail: TripDetail }) {
   return <PointEditor key={p.id} detail={detail} point={p} />;
 }
 
-// Google Place Details fetched lazily (server-cached 30 days). The Maps link is
-// free — built from the stored place id, or plain coords for pin-dropped stops.
-function PlaceSection({ point: p }: { point: Point }) {
-  const info = usePlaceInfo(p.id, !!p.googlePlaceId).data;
-  const mapsUrl = p.googlePlaceId
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&query_place_id=${p.googlePlaceId}`
-    : `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`;
-  const place = info?.status === "ok" ? info.place : undefined;
-  return (
-    <div>
-      <div style={sectionHead}>PLACE</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {place && (
-          <div style={{ padding: "11px 13px", background: "#fff", border: CARD_BORDER, borderRadius: 10, display: "flex", flexDirection: "column", gap: 4, fontSize: 12.5, boxShadow: "0 1px 2px rgba(22,33,31,.04)" }}>
-            {place.rating != null && (
-              <div style={{ fontWeight: 700 }}>
-                ★ {place.rating.toFixed(1)}
-                {place.userRatingCount != null && <span style={{ color: "var(--slate)", fontWeight: 400 }}> ({place.userRatingCount.toLocaleString()} reviews)</span>}
-              </div>
-            )}
-            {place.formattedAddress && <div style={{ color: "var(--slate)" }}>{place.formattedAddress}</div>}
-            {(place.websiteUri || place.phone) && (
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 1 }}>
-                {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>Website</a>}
-                {place.phone && <a href={`tel:${place.phone}`} style={{ fontWeight: 600 }}>{place.phone}</a>}
-              </div>
-            )}
-            {place.weekdayHours.length > 0 && (
-              <details style={{ borderTop: "1px dashed rgba(30,42,44,.10)", marginTop: 4, paddingTop: 6 }}>
-                <summary style={{ cursor: "pointer", color: "var(--slate)", fontWeight: 600, fontSize: 12 }}>Opening hours</summary>
-                <div className="mono" style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 2, color: "var(--slate)", fontSize: 10.5, textTransform: "uppercase" }}>
-                  {place.weekdayHours.map((h, i) => <div key={i}>{h}</div>)}
-                </div>
-              </details>
-            )}
-          </div>
-        )}
-        <a href={mapsUrl} target="_blank" rel="noreferrer" style={{ ...dashedAction, alignSelf: "flex-start", color: "var(--slate)" }}>
-          Open in Google Maps ↗
-        </a>
-      </div>
-    </div>
-  );
-}
-
 function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point }) {
   const { selectPoint } = useEditorStore();
+  const placeInfo = usePlaceInfo(p.id, !!p.googlePlaceId).data;
   const isMobile = useIsMobile();
   const patch = usePatchPoint(detail.trip.id);
   const del = useDeletePoint(detail.trip.id);
@@ -154,7 +109,7 @@ function PointEditor({ detail, point: p }: { detail: TripDetail; point: Point })
         <button onClick={() => selectPoint(null)} aria-label="Close details" style={{ ...iconBtn(30), borderRadius: 9 }}><X size={14} aria-hidden /></button>
       </div>
       <div style={{ padding: "14px 18px 18px", display: "flex", flexDirection: "column", gap: 16 }}>
-        <PlaceSection point={p} />
+        <PlaceSection point={p} info={placeInfo} />
         <div>
           <div style={sectionHead}>DAY</div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

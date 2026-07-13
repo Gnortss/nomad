@@ -1,7 +1,10 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
-import { describe, it, expect, beforeEach } from "vitest";
-import { getDb, trips, days, points, dayStops, dayRoutes } from "../../src/worker/db/schema";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { eq } from "drizzle-orm";
+import { getDb, trips, days, points, dayStops, dayRoutes, apiUsage } from "../../src/worker/db/schema";
 import { shareRouter } from "../../src/worker/routes/share";
+import { makePlaceInfoRouter } from "../../src/worker/routes/points";
+import type { PlaceDetails } from "../../src/worker/lib/places";
 import { appWith } from "../helpers/session";
 
 async function call(app: ReturnType<typeof appWith>, req: Request) {
@@ -14,7 +17,7 @@ beforeEach(async () => {
   const now = Date.now();
   await getDb(env).insert(trips).values({ id: "t1", userId: "alice", name: "Iceland", startDate: "2026-07-12", vehicleNotes: "secret van", fuelLPer100km: 8, fuelPricePerL: 1.9, createdAt: now, updatedAt: now });
   await getDb(env).insert(days).values({ id: "d0", tripId: "t1", position: 0, title: "A", notes: null, departureTime: null, targetArrivalTime: null });
-  await getDb(env).insert(points).values({ id: "p0", tripId: "t1", name: "P", lat: 1, lng: 1, coordSource: "user", type: "poi", bookingStatus: "booked", estCost: 99, costBasis: "per_night", createdAt: now });
+  await getDb(env).insert(points).values({ id: "p0", tripId: "t1", name: "P", lat: 1, lng: 1, coordSource: "user", type: "poi", bookingStatus: "booked", estCost: 99, costBasis: "per_night", notes: "private note", googlePlaceId: "gp0", createdAt: now });
   await getDb(env).insert(dayStops).values({ dayId: "d0", pointId: "p0", position: 0 });
   await getDb(env).insert(dayRoutes).values({ dayId: "d0", waypointsHash: "h", polyline: "poly", distanceM: 200000, durationS: 7200, computedAt: now });
 });
@@ -33,6 +36,8 @@ describe("share", () => {
     expect(body.trip.vehicleNotes).toBeUndefined();       // stripped
     expect(body.stats.totalFuel).toBeUndefined();         // no fuel in share
     expect(body.points[0].estCost).toBeUndefined();       // cost stripped
+    expect(body.points[0].notes).toBeUndefined();         // notes stripped
+    expect(body.points[0].googlePlaceId).toBe("gp0");     // public place id kept for the PLACE card
     expect(body.points[0].bookingStatus).toBe("booked");  // status kept
     expect(body.routes.d0.polyline).toBe("poly");
     expect(body.stats.totalDistanceM).toBe(200000);
@@ -46,5 +51,45 @@ describe("share", () => {
     const anon = appWith(null, shareRouter);
     expect((await call(anon, new Request(`http://x/api/share/${first}`))).status).toBe(404);
     expect((await call(anon, new Request(`http://x/api/share/${rotated}`))).status).toBe(200);
+  });
+});
+
+const PLACE: PlaceDetails = {
+  formattedAddress: "Somewhere 1, Iceland", rating: 4.5, userRatingCount: 12,
+  weekdayHours: [], websiteUri: null, phone: null,
+};
+
+describe("GET /api/share/:token/points/:pid/place", () => {
+  beforeEach(async () => {
+    const db = getDb(env);
+    await db.delete(apiUsage);
+    await db.update(trips).set({ shareToken: "tok1" }).where(eq(trips.id, "t1"));
+    // A second, unshared trip — its points must not be readable through t1's token.
+    const now = Date.now();
+    await db.insert(trips).values({ id: "t2", userId: "bob", name: "Alps", createdAt: now, updatedAt: now });
+    await db.insert(points).values({ id: "p9", tripId: "t2", name: "Q", lat: 9, lng: 9, googlePlaceId: "gp9", createdAt: now });
+  });
+
+  it("serves place info to anonymous viewers of the shared trip", async () => {
+    const fetchPlace = vi.fn(async () => PLACE);
+    const anon = appWith(null, makePlaceInfoRouter(fetchPlace));
+    const res = await call(anon, new Request("http://x/api/share/tok1/points/p0/place"));
+    expect(await res.json()).toEqual({ status: "ok", place: PLACE });
+    expect(fetchPlace).toHaveBeenCalledExactlyOnceWith("gp0");
+  });
+
+  it("404s on an unknown token and on a point outside the shared trip", async () => {
+    const anon = appWith(null, makePlaceInfoRouter(async () => PLACE));
+    expect((await call(anon, new Request("http://x/api/share/nope/points/p0/place"))).status).toBe(404);
+    expect((await call(anon, new Request("http://x/api/share/tok1/points/p9/place"))).status).toBe(404);
+  });
+
+  it("shares the monthly Google budget with the owner route", async () => {
+    await getDb(env).insert(apiUsage).values({ month: new Date().toISOString().slice(0, 7), sku: "place_details_enterprise", count: 900 });
+    const fetchPlace = vi.fn(async () => PLACE);
+    const anon = appWith(null, makePlaceInfoRouter(fetchPlace));
+    const res = await call(anon, new Request("http://x/api/share/tok1/points/p0/place"));
+    expect(await res.json()).toEqual({ status: "budget" });
+    expect(fetchPlace).not.toHaveBeenCalled();
   });
 });

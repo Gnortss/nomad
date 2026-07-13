@@ -50,11 +50,14 @@ shareRouter.get("/api/share/:token", async (c) => {
     totalDistanceM += r.distanceM; totalDurationS += r.durationS;
   }
 
-  // Private fields (fuel, est_cost/cost_basis, vehicle_notes, budget, user_id) are deliberately omitted.
+  // Private fields (fuel, est_cost/cost_basis, notes, vehicle_notes, budget, user_id) are
+  // deliberately omitted. googlePlaceId is a public Google identifier — safe to expose, and
+  // the share page needs it for the PLACE card and the Google Maps link.
   return c.json({
     trip: { name: trip.name, startDate: trip.startDate },
     groups: grp.map((g) => ({ id: g.id, name: g.name, color: g.color })),
     points: pts.map((p) => ({ id: p.id, name: p.name, type: p.type, lat: p.lat, lng: p.lng,
+      googlePlaceId: p.googlePlaceId,
       links: p.links ? JSON.parse(p.links) : [], bookingStatus: p.bookingStatus, groupId: p.groupId })),
     days: dys.map((d) => ({ id: d.id, position: d.position, title: d.title })),
     stops,
