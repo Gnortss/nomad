@@ -130,6 +130,33 @@ describe("ChatPanel", () => {
     await waitFor(() => expect(screen.queryByRole("status", { name: "Assistant is working" })).toBeNull());
   });
 
+  it("stops following the stream while the user is scrolled up, resumes at the bottom", async () => {
+    getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: false });
+    let handlers!: TripChatHandlers;
+    streamTripChat.mockImplementation((_id: string, _b: object, h: TripChatHandlers) => {
+      handlers = h;
+      return new Promise<void>(() => {}); // turn stays in flight
+    });
+    wrap();
+    const input = await screen.findByPlaceholderText(/Ask for changes/);
+    fireEvent.change(input, { target: { value: "plan it" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    const scroller = (await screen.findByText("plan it")).parentElement!;
+    // jsdom reports zero layout — fake an overflowing scroller.
+    Object.defineProperty(scroller, "scrollHeight", { value: 1000, configurable: true });
+    Object.defineProperty(scroller, "clientHeight", { value: 400, configurable: true });
+
+    scroller.scrollTop = 0;
+    fireEvent.scroll(scroller); // user scrolled up → unpinned
+    act(() => handlers.onText("delta"));
+    expect(scroller.scrollTop).toBe(0); // stream must not yank the view down
+
+    scroller.scrollTop = 600; // back at the bottom (1000 - 400)
+    fireEvent.scroll(scroller); // re-pinned
+    act(() => handlers.onText("more"));
+    expect(scroller.scrollTop).toBe(1000); // following again
+  });
+
   it("invalidates the trip query on trip_updated", async () => {
     getTripChat.mockResolvedValue({ log: [], busy: false, pendingSeed: false });
     const qc = new QueryClient();

@@ -34,6 +34,10 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   const [unread, setUnread] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Whether the view should follow new messages. Cleared when the user scrolls
+  // up (e.g. re-reading history mid-stream), restored when they scroll back
+  // down, reopen the panel, or send a message.
+  const pinnedRef = useRef(true);
   const kickoffRef = useRef(false);
   const chatOpenRef = useRef(chatOpen);
   chatOpenRef.current = chatOpen;
@@ -43,18 +47,21 @@ export function ChatPanel({ tripId }: { tripId: string }) {
   // the stream. The dispatch inside the closed-over action is stable.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => { abortRef.current?.abort(); setAiBusy(false); }, []);
-  // chatOpen: the scroll container remounts when the panel reopens; busy: the
-  // "Thinking…" bubble grows the scroll area without a thread change.
+  // Reopening re-pins (the scroll container remounts at the top); declared
+  // before the follow effect so the same render's scroll sees the reset.
+  useEffect(() => {
+    if (chatOpen) { setUnread(false); pinnedRef.current = true; }
+  }, [chatOpen]);
+  // Follow new content only while pinned to the bottom — never fight a user
+  // who scrolled up. busy: the "Thinking…" bubble grows the scroll area
+  // without a thread change.
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && pinnedRef.current) el.scrollTop = el.scrollHeight;
   }, [chatOpen, thread, replies, activity, busy]);
   useEffect(() => {
     if (chatPrefill != null) { setInput(chatPrefill); consumeChatPrefill(); }
   }, [chatPrefill, consumeChatPrefill]);
-  useEffect(() => {
-    if (chatOpen) setUnread(false);
-  }, [chatOpen]);
 
   function appendAssistantDelta(delta: string) {
     setThread((t) => {
@@ -118,6 +125,7 @@ export function ChatPanel({ tripId }: { tripId: string }) {
     const t = text.trim();
     if (!t || busy) return;
     setInput("");
+    pinnedRef.current = true; // sending snaps the view back to the newest message
     setThread((th) => [...th, { kind: "user", text: t }]);
     await runTurn({ text: t });
   }
@@ -157,7 +165,9 @@ export function ChatPanel({ tripId }: { tripId: string }) {
         <button onClick={closeChat} aria-label="Collapse chat" style={iconBtn(28)}><X size={14} aria-hidden /></button>
       </div>
 
-      <div ref={scrollRef} style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, padding: 14 }}>
+      <div ref={scrollRef}
+        onScroll={(e) => { const el = e.currentTarget; pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40; }}
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, padding: 14 }}>
         {thread.map((item, i) =>
           item.kind === "tool" ? (
             <div key={i} className="mono" style={{ fontSize: 11, color: "#8FA3A0", fontStyle: "italic", padding: "0 4px" }}>· {item.text}</div>
