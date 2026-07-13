@@ -10,10 +10,11 @@ import { btnPrimary, btnSecondary, tint, E1 } from "../styles/ui";
 import type { TripDetail, Point } from "../lib/types";
 
 export function Pool({ detail }: { detail: TripDetail }) {
-  const { selectPoint, startDropPin, droppingPin, aiBusy } = useEditorStore();
+  const { selectPoint, startDropPin, droppingPin, aiBusy, readOnly } = useEditorStore();
   const [filterGroup, setFilterGroup] = useState<string | null>(null);
   const pool = pooledPoints(detail);
   const filterName = filterGroup ? detail.groups.find((g) => g.id === filterGroup)?.name : null;
+  if (readOnly && pool.length === 0) return null; // no rows and no add buttons — nothing to show
 
   return (
     <div style={{ flex: "none", maxHeight: 290, display: "flex", flexDirection: "column", borderTop: "1px solid rgba(30,42,44,.12)", background: "var(--tray)", boxShadow: "inset 0 6px 12px -8px rgba(22,33,31,.12)" }}>
@@ -21,15 +22,17 @@ export function Pool({ detail }: { detail: TripDetail }) {
         <div className="ovp" style={{ fontWeight: 700, fontSize: 11, letterSpacing: ".14em", color: "var(--slate)" }}>
           UNASSIGNED {pool.length > 0 && <span className="mono" style={{ fontWeight: 400, letterSpacing: 0, fontSize: 10 }}>· {pool.length}</span>}
         </div>
-        <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
-          <AddStop tripId={detail.trip.id} />
-          <button onClick={startDropPin}
-            style={droppingPin
-              ? { ...btnPrimary(30), padding: "0 12px", fontSize: 11.5, borderRadius: 8 }
-              : { ...btnSecondary(30), padding: "0 12px", fontSize: 11.5, borderRadius: 8 }}>
-            <MapPin size={12} aria-hidden /> Drop a pin
-          </button>
-        </div>
+        {!readOnly && (
+          <div style={{ display: "flex", gap: 7, marginTop: 9 }}>
+            <AddStop tripId={detail.trip.id} />
+            <button onClick={startDropPin}
+              style={droppingPin
+                ? { ...btnPrimary(30), padding: "0 12px", fontSize: 11.5, borderRadius: 8 }
+                : { ...btnSecondary(30), padding: "0 12px", fontSize: 11.5, borderRadius: 8 }}>
+              <MapPin size={12} aria-hidden /> Drop a pin
+            </button>
+          </div>
+        )}
         {detail.groups.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
             {detail.groups.map((g) => {
@@ -102,13 +105,14 @@ export function StopCard({ point, detail, trailing, overlay }: { point: Point; d
 }
 
 function PoolRow({ point, detail, dimmed, onSelect }: { point: Point; detail: TripDetail; dimmed: boolean; onSelect: () => void }) {
+  const { readOnly } = useEditorStore();
   // div (not button): dnd-kit attributes supply role="button"/tabIndex, and the day-menu button nests inside.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: point.id, data: { type: "poolPoint" } });
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect} data-dimmed={dimmed || undefined}
-      style={{ display: "flex", flexDirection: "column", cursor: "grab", opacity: isDragging ? 0.35 : dimmed ? 0.45 : 1, touchAction: "manipulation" }}>
+      style={{ display: "flex", flexDirection: "column", cursor: readOnly ? "pointer" : "grab", opacity: isDragging ? 0.35 : dimmed ? 0.45 : 1, touchAction: "manipulation" }}>
       <StopCard point={point} detail={detail}
-        trailing={<DayMenu detail={detail} pointId={point.id} triggerLabel="＋ Day" triggerStyle={{ height: 24, padding: "0 9px", flex: "none", background: "var(--panel)", border: "1px solid rgba(30,42,44,.16)", borderRadius: 7, fontSize: 10.5, fontWeight: 700, color: "var(--slate)", fontFamily: "inherit", cursor: "pointer" }} />} />
+        trailing={readOnly ? <span /> : <DayMenu detail={detail} pointId={point.id} triggerLabel="＋ Day" triggerStyle={{ height: 24, padding: "0 9px", flex: "none", background: "var(--panel)", border: "1px solid rgba(30,42,44,.16)", borderRadius: 7, fontSize: 10.5, fontWeight: 700, color: "var(--slate)", fontFamily: "inherit", cursor: "pointer" }} />} />
     </div>
   );
 }

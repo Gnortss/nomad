@@ -75,6 +75,32 @@ const PLACE_TTL_MS = 30 * 24 * 3600 * 1000;
 const PLACE_SKU = "place_details_enterprise";
 const PLACE_BUDGET = 900; // 90% of the 1,000 free Enterprise calls/month
 
+// Cache-or-fetch core shared by the owner and share-link routes above/below.
+async function resolvePlaceInfo(db: ReturnType<typeof getDb>, placeId: string | null, fetchPlace: PlaceDetailsFetcher) {
+  if (!placeId) return { status: "none" };
+
+  const cached = (await db.select().from(placeDetails).where(eq(placeDetails.placeId, placeId)).limit(1))[0];
+  if (cached && Date.now() - cached.fetchedAt < PLACE_TTL_MS)
+    return { status: "ok", place: JSON.parse(cached.data) };
+
+  const month = new Date().toISOString().slice(0, 7);
+  const usage = (await db.select().from(apiUsage)
+    .where(and(eq(apiUsage.month, month), eq(apiUsage.sku, PLACE_SKU))).limit(1))[0];
+  if ((usage?.count ?? 0) >= PLACE_BUDGET) return { status: "budget" };
+
+  // Count the attempt before calling: overcounts on failure, never undercounts.
+  await db.insert(apiUsage).values({ month, sku: PLACE_SKU, count: 1 })
+    .onConflictDoUpdate({ target: [apiUsage.month, apiUsage.sku], set: { count: sql`${apiUsage.count} + 1` } });
+
+  const place = await fetchPlace(placeId);
+  if (!place) return { status: "error" };
+
+  const fresh = { placeId, data: JSON.stringify(place), fetchedAt: Date.now() };
+  await db.insert(placeDetails).values(fresh)
+    .onConflictDoUpdate({ target: placeDetails.placeId, set: { data: fresh.data, fetchedAt: fresh.fetchedAt } });
+  return { status: "ok", place };
+}
+
 export function makePlaceInfoRouter(fetchOverride?: PlaceDetailsFetcher) {
   const r = new Hono<{ Bindings: AppEnv; Variables: Vars }>();
   r.get("/api/points/:pid/place", async (c) => {
@@ -85,29 +111,19 @@ export function makePlaceInfoRouter(fetchOverride?: PlaceDetailsFetcher) {
       .from(points).innerJoin(trips, eq(points.tripId, trips.id))
       .where(eq(points.id, c.req.param("pid"))).limit(1))[0];
     if (!row || row.userId !== user.id) return c.json({ error: "not found" }, 404);
-    if (!row.placeId) return c.json({ status: "none" });
-
-    const cached = (await db.select().from(placeDetails).where(eq(placeDetails.placeId, row.placeId)).limit(1))[0];
-    if (cached && Date.now() - cached.fetchedAt < PLACE_TTL_MS)
-      return c.json({ status: "ok", place: JSON.parse(cached.data) });
-
-    const month = new Date().toISOString().slice(0, 7);
-    const usage = (await db.select().from(apiUsage)
-      .where(and(eq(apiUsage.month, month), eq(apiUsage.sku, PLACE_SKU))).limit(1))[0];
-    if ((usage?.count ?? 0) >= PLACE_BUDGET) return c.json({ status: "budget" });
-
-    // Count the attempt before calling: overcounts on failure, never undercounts.
-    await db.insert(apiUsage).values({ month, sku: PLACE_SKU, count: 1 })
-      .onConflictDoUpdate({ target: [apiUsage.month, apiUsage.sku], set: { count: sql`${apiUsage.count} + 1` } });
-
     const fetchPlace = fetchOverride ?? googlePlaceDetails(c.env.GOOGLE_ROUTES_KEY);
-    const place = await fetchPlace(row.placeId);
-    if (!place) return c.json({ status: "error" });
-
-    const fresh = { placeId: row.placeId, data: JSON.stringify(place), fetchedAt: Date.now() };
-    await db.insert(placeDetails).values(fresh)
-      .onConflictDoUpdate({ target: placeDetails.placeId, set: { data: fresh.data, fetchedAt: fresh.fetchedAt } });
-    return c.json({ status: "ok", place });
+    return c.json(await resolvePlaceInfo(db, row.placeId, fetchPlace));
+  });
+  // Public variant for the share page: the token stands in for auth — the point
+  // must belong to the trip that token was minted for.
+  r.get("/api/share/:token/points/:pid/place", async (c) => {
+    const db = getDb(c.env);
+    const row = (await db.select({ placeId: points.googlePlaceId })
+      .from(points).innerJoin(trips, eq(points.tripId, trips.id))
+      .where(and(eq(points.id, c.req.param("pid")), eq(trips.shareToken, c.req.param("token")))).limit(1))[0];
+    if (!row) return c.json({ error: "not found" }, 404);
+    const fetchPlace = fetchOverride ?? googlePlaceDetails(c.env.GOOGLE_ROUTES_KEY);
+    return c.json(await resolvePlaceInfo(db, row.placeId, fetchPlace));
   });
   return r;
 }

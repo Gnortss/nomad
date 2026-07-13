@@ -40,12 +40,15 @@ export const deleteGroup = (id: string) => req<void>(`/api/groups/${id}`, { meth
 export const mintShare = (tripId: string) => req<{ shareToken: string }>(`/api/trips/${tripId}/share`, { method: "POST" });
 export const rotateShare = (tripId: string) => req<{ shareToken: string }>(`/api/trips/${tripId}/share`, { method: "DELETE" });
 export const getShare = (token: string) => req<unknown>(`/api/share/${token}`);
+export const getSharePlaceInfo = (token: string, pointId: string) => req<PlaceInfo>(`/api/share/${token}/points/${pointId}/place`);
 
 export const useTrips = () => useQuery({ queryKey: ["trips"], queryFn: listTrips });
 // Server caches place details in D1 for 30 days; staleTime Infinity keeps a
 // browser session from re-asking for the same stop.
 export const usePlaceInfo = (pointId: string, enabled: boolean) =>
   useQuery({ queryKey: ["place", pointId], queryFn: () => getPlaceInfo(pointId), enabled, staleTime: Infinity });
+export const useSharePlaceInfo = (token: string, pointId: string, enabled: boolean) =>
+  useQuery({ queryKey: ["share-place", pointId], queryFn: () => getSharePlaceInfo(token, pointId), enabled, staleTime: Infinity });
 export const useTrip = (id: string) => useQuery({ queryKey: ["trip", id], queryFn: () => getTrip(id) });
 
 export function useInvalidateTrip(tripId: string) {

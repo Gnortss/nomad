@@ -33,6 +33,7 @@ function reducer(s: State, a: Action): State {
 }
 
 type Store = State & {
+  readOnly: boolean;
   selectDay: (id: string | null) => void;
   toggleDayExpanded: (id: string) => void;
   expandDay: (id: string) => void;
@@ -46,10 +47,11 @@ type Store = State & {
 };
 const Ctx = createContext<Store | null>(null);
 
-export function EditorStoreProvider({ children, initialChatOpen = true }: { children: React.ReactNode; initialChatOpen?: boolean }) {
+export function EditorStoreProvider({ children, initialChatOpen = true, readOnly = false }: { children: React.ReactNode; initialChatOpen?: boolean; readOnly?: boolean }) {
   const [state, dispatch] = useReducer(reducer, { selectedDayId: null, expandedDayIds: new Set<string>(), selectedPointId: null, droppingPin: false, chatOpen: initialChatOpen, chatPrefill: null, aiBusy: false });
   const value = useMemo<Store>(() => ({
     ...state,
+    readOnly,
     selectDay: (id) => dispatch({ t: "selectDay", id }),
     toggleDayExpanded: (id) => dispatch({ t: "toggleDayExpanded", id }),
     expandDay: (id) => dispatch({ t: "expandDay", id }),
@@ -60,7 +62,7 @@ export function EditorStoreProvider({ children, initialChatOpen = true }: { chil
     closeChat: () => dispatch({ t: "closeChat" }),
     consumeChatPrefill: () => dispatch({ t: "consumeChatPrefill" }),
     setAiBusy: (busy) => dispatch({ t: "setAiBusy", busy }),
-  }), [state]);
+  }), [state, readOnly]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

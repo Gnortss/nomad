@@ -5,6 +5,8 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   fuel: Fuel, charging: PlugZap, food: Utensils, viewpoint: Mountain, activity: Footprints, other: Hexagon,
 };
 
+export const TYPE_LABEL: Record<string, string> = { camp: "Campsite", wildcamp: "Wild camp", hostel: "Hostel", hotel: "Hotel / apartment", poi: "Point of interest", fuel: "Fuel stop", charging: "Charging stop", food: "Food", viewpoint: "Viewpoint", activity: "Activity", other: "Other" };
+
 export function TypeIcon({ type, size = 13, color = "currentColor" }: { type: string; size?: number; color?: string }) {
   const Icon = TYPE_ICONS[type] ?? MapPin;
   return <Icon size={size} color={color} strokeWidth={2} aria-hidden />;

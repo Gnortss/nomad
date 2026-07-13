@@ -23,12 +23,13 @@ function DayDropZone({ dayId, children }: { dayId: string; children: React.React
 }
 
 function DayStopRow({ point: p, dayId, index, count, selected, onSelect }: { point: Point; dayId: string; index: number; count: number; selected: boolean; onSelect: () => void }) {
+  const { readOnly } = useEditorStore();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, active, over } = useSortable({ id: p.id, data: { type: "dayStop", dayId } });
   // Insertion bar for foreign drags only (pool→day, other-day→day); same-day reorders animate via the sortable transform instead.
   const showLine = over?.id === p.id && !!active && active.id !== p.id && active.data.current?.dayId !== dayId;
   return (
     <div ref={setNodeRef} {...attributes} {...listeners} onClick={onSelect}
-      style={{ position: "relative", transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1, display: "flex", alignItems: "center", gap: 9, padding: "5px 7px", borderRadius: 8, background: selected ? "var(--lupine-tint)" : "transparent", textAlign: "left", cursor: "grab", touchAction: "manipulation" }}>
+      style={{ position: "relative", transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1, display: "flex", alignItems: "center", gap: 9, padding: "5px 7px", borderRadius: 8, background: selected ? "var(--lupine-tint)" : "transparent", textAlign: "left", cursor: readOnly ? "pointer" : "grab", touchAction: "manipulation" }}>
       {showLine && (
         <span aria-hidden>
           <span style={{ position: "absolute", left: 2, right: 8, top: -2, height: 3, borderRadius: 2, background: "var(--lupine)" }} />
@@ -102,7 +103,7 @@ function DaySkeleton({ n }: { n: number }) {
 }
 
 export function DayRail({ detail }: { detail: TripDetail }) {
-  const { selectedDayId, selectDay, expandedDayIds, toggleDayExpanded, selectPoint, selectedPointId, openChat, aiBusy } = useEditorStore();
+  const { selectedDayId, selectDay, expandedDayIds, toggleDayExpanded, selectPoint, selectedPointId, openChat, aiBusy, readOnly } = useEditorStore();
   const createDay = useCreateDay(detail.trip.id);
   const days = daysWithStats(detail);
   // Mid-drag, expanded days grow an (empty) ALSO THIS DAY target so a stop can
@@ -110,15 +111,17 @@ export function DayRail({ detail }: { detail: TripDetail }) {
   const dragging = !!useDndContext().active;
   const isMobile = useIsMobile();
   // On mobile the collapsed AI-planner pill floats over the sheet's bottom-right
-  // corner; the extra scroll room lets the last day clear it.
+  // corner; the extra scroll room lets the last day clear it. (No pill read-only.)
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 11, paddingBottom: isMobile ? 64 : 11 }}>
+    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 11, paddingBottom: isMobile && !readOnly ? 64 : 11 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 4px 9px" }}>
         <span className="ovp" style={{ fontWeight: 700, fontSize: 11, letterSpacing: ".14em", color: "var(--slate)" }}>
           DAYS {days.length > 0 && <span className="mono" style={{ fontWeight: 400, letterSpacing: 0, fontSize: 10 }}>· {days.length}</span>}
         </span>
-        <button onClick={() => createDay.mutate({})} disabled={createDay.isPending}
-          style={{ ...btnSecondary(24), padding: "0 9px", fontSize: 11, borderRadius: 7 }}>+ Add day</button>
+        {!readOnly && (
+          <button onClick={() => createDay.mutate({})} disabled={createDay.isPending}
+            style={{ ...btnSecondary(24), padding: "0 9px", fontSize: 11, borderRadius: 7 }}>+ Add day</button>
+        )}
       </div>
       {days.length === 0 && (aiBusy ? (
         <>
@@ -168,8 +171,10 @@ export function DayRail({ detail }: { detail: TripDetail }) {
                     </span>
                   </span>
                 </button>
-                <button onClick={() => openChat(`Refine day ${d.position + 1}: `)} aria-label={`Refine day ${d.position + 1} with AI`} title="Refine with AI"
-                  style={{ flex: "none", width: 24, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: selected ? "var(--lupine)" : "var(--slate)", cursor: "pointer" }}><Sparkles size={13} aria-hidden /></button>
+                {!readOnly && (
+                  <button onClick={() => openChat(`Refine day ${d.position + 1}: `)} aria-label={`Refine day ${d.position + 1} with AI`} title="Refine with AI"
+                    style={{ flex: "none", width: 24, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: selected ? "var(--lupine)" : "var(--slate)", cursor: "pointer" }}><Sparkles size={13} aria-hidden /></button>
+                )}
                 <button onClick={() => toggleDayExpanded(d.id)} aria-label="Toggle stops" aria-expanded={expanded}
                   style={{ flex: "none", width: 28, display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: expanded ? "var(--slate)" : "#8FA3A0", cursor: "pointer" }}>{expanded ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}</button>
               </div>

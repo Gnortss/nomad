@@ -78,6 +78,16 @@ describe("DayRail", () => {
     expect((container.firstElementChild as HTMLElement).style.paddingBottom).toBe("64px");
     isMobile = false;
   });
+  it("read-only: hides add-day and AI-refine, but stops still select", () => {
+    render(<QueryClientProvider client={new QueryClient()}><EditorStoreProvider readOnly><DayRail detail={detail} /></EditorStoreProvider></QueryClientProvider>);
+    expect(screen.queryByRole("button", { name: /add day/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /refine day/i })).toBeNull();
+    fireEvent.click(screen.getAllByLabelText("Toggle stops")[0]);
+    fireEvent.click(screen.getByText("Reykjavík"));
+    const row = screen.getByText("Reykjavík").parentElement as HTMLElement;
+    expect(row.style.background).toBe("var(--lupine-tint)"); // selection still highlights
+    expect(row.style.cursor).toBe("pointer");                // not a drag handle
+  });
   it("chevron expands stops; multiple days expand independently", () => {
     wrap();
     const chevrons = screen.getAllByLabelText("Toggle stops");
