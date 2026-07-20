@@ -7,10 +7,11 @@ import { makeStopsRouter } from "./routes/stops";
 import { tripDetailRouter } from "./routes/trip-detail";
 import { groupsRouter } from "./routes/groups";
 import { shareRouter } from "./routes/share";
+import { sharePageRouter } from "./routes/share-page";
 import { makeAiNewTripRouter } from "./routes/ai-new-trip";
 import { makeAiTripChatRouter } from "./routes/ai-trip-chat";
 
-export type Env = { DB: D1Database };
+export type Env = { DB: D1Database; ASSETS: Fetcher };
 type Variables = { user: { id: string } | null };
 
 const app = new Hono<{ Bindings: AppEnv; Variables: Variables }>();
@@ -36,6 +37,7 @@ app.route("/", makeStopsRouter());
 app.route("/", tripDetailRouter);
 app.route("/", groupsRouter);
 app.route("/", shareRouter);
+app.route("/", sharePageRouter);
 app.route("/", makeAiNewTripRouter());
 app.route("/", makeAiTripChatRouter());
 
